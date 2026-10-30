@@ -373,6 +373,11 @@ function seed(){
       {id:id(),text:'Running low on nappies',by:1,at:t-30*H,color:2}
     ],
     countdowns:[{id:id(),title:'Christmas Day',date:'2026-12-25'}],
+    deliveries:[
+      {id:id(),item:'Pram and car seat',courier:'DPD',date:iso(addDays(t,1)),from:'10:00',to:'11:00',ref:'',note:'Someone needs to sign',done:false},
+      {id:id(),item:'Nappies (bulk order)',courier:'An Post',date:iso(t),from:'',to:'',ref:'',note:'Leave in the porch',done:false},
+      {id:id(),item:'Phone case',courier:'GLS',date:iso(addDays(t,-1)),from:'',to:'',ref:'',note:'',done:true}
+    ],
     contacts:defaultContacts(),
     dinners:[
       {id:id(),date:iso(t),meal:'Spaghetti bolognese',note:'Mince is in the freezer, take it out in the morning',ingredients:'Mince, Onion, Garlic, Tinned tomatoes, Spaghetti'},
@@ -389,7 +394,7 @@ function seed(){
 }
 function emptyState(old){
   return {...seed(),example:false,settings:old.settings,bins:old.bins,meds:[],
-    notes:[],countdowns:[],contacts:old.contacts||defaultContacts(),dinners:[],feeds:[],nappies:[],sleeps:[],doses:[],temps:[],growth:[],appts:[],questions:[],shopping:[],todos:[],reminders:[],bills:[]};
+    notes:[],countdowns:[],deliveries:[],contacts:old.contacts||defaultContacts(),dinners:[],feeds:[],nappies:[],sleeps:[],doses:[],temps:[],growth:[],appts:[],questions:[],shopping:[],todos:[],reminders:[],bills:[]};
 }
 
 let S;
@@ -399,6 +404,7 @@ if(!S.dinners)S.dinners=S.example?seed().dinners:[];
 if(!S.notes)S.notes=S.example?seed().notes:[];
 if(!S.countdowns)S.countdowns=S.example?seed().countdowns:[];
 if(!S.contacts)S.contacts=defaultContacts();
+if(!S.deliveries)S.deliveries=S.example?seed().deliveries:[];
 if(S.settings.address==null)S.settings.address='';
 if(S.settings.dueDate==null)S.settings.dueDate='';
 if(S.settings.pregStart==null)S.settings.pregStart='';
@@ -492,9 +498,9 @@ function babyTiles(compact){
 /* Weather: Open-Meteo, Galway city (not the house). Cached 30 min. */
 const WX_LAT=53.27, WX_LON=-9.05, WX_PLACE='Galway';
 let WX=null; try{WX=JSON.parse(localStorage.getItem(KEY+'.wx'))}catch(e){}
-let wxBusy=false;
+let wxBusy=false, wxLastTry=0;
 async function loadWeather(){
-  if(wxBusy||(WX&&WX.j&&now()-WX.at<30*M))return; wxBusy=true;
+  if(wxBusy||(WX&&WX.j&&!WX.err&&now()-WX.at<30*M)||now()-wxLastTry<5*M)return; wxBusy=true; wxLastTry=now();
   try{
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FDublin&forecast_days=2&wind_speed_unit=kmh`;
     const r=await fetch(url); if(!r.ok)throw new Error(r.status);
@@ -529,7 +535,6 @@ function wxIcon(kind,size){
 function weatherPanel(){
   const head=`<div class="ptitle"><h2>Weather</h2><span class="hint">${WX_PLACE}</span></div>`;
   if(!WX||!WX.j){
-    loadWeather();
     return `<div class="panel span-8">${head}<div class="empty">${WX&&WX.err?'Weather shows when the board is opened from its web link (endafla.github.io/Home-Dashboard).':'Loading the forecast…'}</div></div>`;
   }
   const j=WX.j, c=j.current, h=j.hourly, d=j.daily;
@@ -574,6 +579,17 @@ function pregBlock(){
     <div class="preg-row"><span>${tri}</span><span class="tnum">${wk} of 40 weeks</span></div>
     <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="cd-days tnum" style="text-align:left">${toGo>0?toGo:toGo===0?'Today':Math.abs(toGo)}</span><span class="t" style="font-weight:700">${toGo>0?(toGo===1?'day':'days')+' until the due date':toGo===0?'is the due date':(Math.abs(toGo)===1?'day':'days')+' past the due date'}</span></div>
     <div class="hint">Due ${dueTxt}</div></div>`;
+}
+function arrivingPanel(){
+  const today=startOfDay(now());
+  const due=S.deliveries.filter(d=>!d.done&&parseDay(d.date)<=today).sort((a,b)=>parseDay(a.date)-parseDay(b.date)||(a.from||'99').localeCompare(b.from||'99'));
+  if(!due.length)return '';
+  const li=due.map(d=>{const late=parseDay(d.date)<today;const win=d.from&&d.to?`${esc(d.from)} to ${esc(d.to)}`:d.from?'from '+esc(d.from):d.to?'by '+esc(d.to):'Any time today';
+    return `<li><button class="check" role="checkbox" aria-checked="false" aria-label="Mark ${esc(d.item)} arrived" data-act="toggle" data-col="deliveries" data-id="${d.id}"></button>
+      <div class="li-main"><div class="t">${esc(d.item)}</div><div class="s">${[esc(d.courier),esc(d.note)].filter(Boolean).join(' · ')}</div></div>
+      <span class="row-end">${late?`<span class="pill bad">Late, was ${dayLabel(parseDay(d.date))}</span>`:`<span class="pill warn tnum">${win}</span>`}</span></li>`}).join('');
+  const n=due.filter(d=>parseDay(d.date)===today).length;
+  return `<div class="panel span-12"><div class="ptitle"><h2>Arriving today</h2><span class="hint">${n} due today${due.length>n?`, ${due.length-n} late`:''}. Tick when it lands.</span></div><ul class="list">${li}</ul></div>`;
 }
 function countdownPanel(){
   const today=startOfDay(now());
@@ -654,6 +670,7 @@ function renderToday(){
   S.appts.filter(a=>!a.done).forEach(a=>up.push({t:parseDay(a.date),title:a.title,tag:APPTKIND[a.kind]?.n||'Baby',c:APPTKIND[a.kind]?.c}));
   S.reminders.forEach(r=>up.push({t:parseDay(r.due),title:r.title,tag:REMCAT[r.cat].n,c:REMCAT[r.cat].c}));
   S.bills.forEach(b=>up.push({t:billNext(b),title:b.title,tag:BILLCAT[b.cat],c:'var(--muted)'}));
+  S.deliveries.filter(d=>!d.done&&parseDay(d.date)>startOfDay(now())).forEach(d=>up.push({t:parseDay(d.date),title:d.item,tag:'Delivery'+(d.courier?' · '+d.courier:'')+(d.from?' · '+d.from+(d.to?'–'+d.to:''):''),c:'var(--gorse)'}));
   const upHtml=up.filter(u=>u.t<=today+7*D).sort((a,b)=>a.t-b.t).slice(0,8).map(u=>{const st=dueStatus(u.t);return `<li><span class="dot" style="--c:${u.c}"></span><div class="li-main"><div class="t">${esc(u.title)}</div><div class="s">${u.tag}</div></div><span class="pill ${st.cls}">${u.t<today?st.txt:dayLabel(u.t)}</span></li>`}).join('')||'<li class="empty">Nothing in the next 7 days.</li>';
 
   const st=todayStats(); const names=S.settings.names; const ns=S.settings.nightShift;
@@ -662,6 +679,7 @@ function renderToday(){
   return `<div class="grid">
     <div class="span-12">${babyTiles()}</div>
     ${notesPanel()}
+    ${arrivingPanel()}
     ${weatherPanel()}
     ${countdownPanel()}
     ${tonightPanel()}
@@ -872,6 +890,37 @@ function renderDinners(){
     <div class="week">${cardList.map((c,i)=>c+(days[i]===editDay?editor:'')).join('')}</div>
   </div>`;
 }
+const COURIERS=['An Post','DPD','GLS','Nightline','Fastway','UPS','DHL','FedEx','Amazon'];
+function deliveriesPanel(){
+  const today=startOfDay(now());
+  const open=S.deliveries.filter(d=>!d.done).sort((a,b)=>parseDay(a.date)-parseDay(b.date)||(a.from||'99').localeCompare(b.from||'99'));
+  const arrived=S.deliveries.filter(d=>d.done);
+  const win=d=>d.from&&d.to?`${esc(d.from)} to ${esc(d.to)}`:d.from?'from '+esc(d.from):d.to?'by '+esc(d.to):'';
+  const row=d=>{const t=parseDay(d.date);const diff=Math.round((t-today)/D);
+    const pill=d.done?'<span class="pill ok">Arrived</span>':diff<0?`<span class="pill bad">Late, was ${dayLabel(t)}</span>`:diff===0?'<span class="pill warn">Today</span>':`<span class="pill neutral">${dayLabel(t)}</span>`;
+    return `<li class="${d.done?'done':''}">
+      <button class="check" role="checkbox" aria-checked="${d.done}" aria-label="Mark ${esc(d.item)} arrived" data-act="toggle" data-col="deliveries" data-id="${d.id}">${d.done?'✓':''}</button>
+      <div class="li-main"><div class="t">${esc(d.item)}</div><div class="s">${[esc(d.courier),win(d),d.ref?'Ref '+esc(d.ref):'',esc(d.note)].filter(Boolean).join(' · ')}</div></div>
+      <span class="row-end">${pill}<button class="x" aria-label="Delete ${esc(d.item)}" data-act="del" data-col="deliveries" data-id="${d.id}">×</button></span></li>`};
+  return `<div class="panel span-12">
+    <div class="ptitle"><h2>Deliveries</h2>${arrived.length?`<button class="small-btn" data-act="clearTicked" data-col="deliveries">Clear ${arrived.length} arrived</button>`:''}</div>
+    <ul class="list">${open.map(row).join('')||'<li class="empty">Nothing on the way.</li>'}${arrived.map(row).join('')}</ul>
+    <details class="add"><summary>+ Add a delivery</summary>
+      <form class="inline" data-form="delivery">
+        <input id="dvItem" name="item" required placeholder="What's coming">
+        <input id="dvCourier" name="courier" list="couriers" placeholder="Courier" style="flex:0 1 150px">
+        <datalist id="couriers">${COURIERS.map(c=>`<option value="${c}">`).join('')}</datalist>
+        <input id="dvDate" name="date" type="date" required value="${iso(addDays(now(),1))}" aria-label="Expected day">
+        <input class="narrow" id="dvFrom" name="from" type="time" aria-label="Window from">
+        <input class="narrow" id="dvTo" name="to" type="time" aria-label="Window to">
+        <input id="dvRef" name="ref" placeholder="Tracking number (optional)">
+        <input id="dvNote" name="note" placeholder="Note, e.g. leave in the porch">
+        <button>Add</button>
+      </form>
+      <p class="hint">Time window is optional. Leave it blank if the courier only gives a day.</p>
+    </details>
+  </div>`;
+}
 function addToShopping(items){
   const have=new Set(S.shopping.filter(x=>!x.done).map(x=>x.text.trim().toLowerCase()));
   let n=0; items.forEach(i=>{const k=i.toLowerCase();if(!have.has(k)){have.add(k);DB.add('shopping',{text:i,done:false});n++}});
@@ -890,6 +939,7 @@ function renderHome(){
   const ticked=S.shopping.filter(s=>s.done).length;
   return `<div class="grid">
     ${renderDinners()}
+    ${deliveriesPanel()}
     <div class="panel span-6">
       <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} ticked</button>`:''}</div>
       <form class="inline" data-form="list" data-col="shopping"><input id="shopText" name="text" required placeholder="Add an item" autocomplete="off"><button>Add</button></form>
@@ -1044,6 +1094,7 @@ const FORMS={
     editDay=null; toast('Dinner saved');
   },
   preg(f){S.settings.dueDate=f.dueDate;S.settings.pregStart=f.pregStart||'';editPreg=false;save();toast('Saved')},
+  delivery(f){DB.add('deliveries',{item:f.item.trim(),courier:f.courier.trim(),date:f.date,from:f.from,to:f.to,ref:f.ref.trim(),note:f.note.trim(),done:false});toast('Delivery added')},
   note(f){const by=+f.by;S.settings.lastAuthor=by;DB.add('notes',{text:f.text.trim(),by,at:now(),color:noteColor});toast('Note posted')},
   countdown(f){DB.add('countdowns',{title:f.title.trim(),date:f.date});toast('Countdown added')},
   address(f){S.settings.address=f.address.trim().toUpperCase();editAddr=false;save()},

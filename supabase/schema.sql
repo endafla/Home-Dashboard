@@ -149,6 +149,19 @@ create table contacts (
   note text
 );
 
+create table deliveries (
+  id uuid primary key default gen_random_uuid(),
+  household_id uuid not null references households(id) on delete cascade,
+  item text not null,
+  courier text,
+  expected_on date not null,
+  window_from time,
+  window_to time,
+  tracking_ref text,
+  note text,
+  arrived boolean not null default false
+);
+
 -- Money: names, dates and optional amounts only. No account details.
 create table bills (
   id uuid primary key default gen_random_uuid(),
@@ -165,7 +178,7 @@ do $$
 declare t text;
 begin
   foreach t in array array['feeds','nappies','sleeps','medicines','doses','temperatures','growth',
-                           'appointments','list_items','reminders','bins','bills','dinners','notes','countdowns','contacts'] loop
+                           'appointments','list_items','reminders','bins','bills','dinners','notes','countdowns','contacts','deliveries'] loop
     execute format('alter table %I enable row level security', t);
     execute format('create policy "members read" on %I for select using (is_member(household_id))', t);
     execute format('create policy "members write" on %I for all using (is_member(household_id)) with check (is_member(household_id))', t);

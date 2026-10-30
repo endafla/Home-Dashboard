@@ -14,7 +14,7 @@ Family dashboard for the kitchen tablet and both phones.
 - [x] UI for all four tabs, with example data
 - [x] Today: weather (now + next 12 hours, drying-day check), countdowns, note board, emergency card with Eircode and medical numbers
 - [x] Baby logging: feeds (timer, sides, bottle), nappies, sleep, medicines with early-dose warning, temperature, growth chart, appointments and vaccines, questions for the nurse or GP
-- [x] Household: dinner planner (7-day strip, prep note, ingredients to shopping list), shopping list, to-dos, dog / home / car reminders, bin dates from a repeating schedule
+- [x] Household: deliveries (item, courier, day, time window, tracking ref), dinner planner (7-day strip, prep note, ingredients to shopping list), shopping list, to-dos, dog / home / car reminders, bin dates from a repeating schedule
 - [x] Money: debits, renewals (flagged 30 days out), annual bills, subscriptions; amounts hidden by default
 - [x] Night mode (red, dim)
 - [ ] Separate Supabase project (EU region) + run `schema.sql`
