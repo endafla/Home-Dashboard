@@ -19,7 +19,8 @@ Family dashboard for the kitchen tablet and both phones.
 - [ ] Separate Supabase project (EU region) + run `schema.sql`
 - [ ] Sign-in for household members; swap local storage for Supabase with live sync
 - [ ] Calendars via private iCal links
-- [ ] Hosting + install on tablet and phones
+- [x] Hosted on GitHub Pages: https://endafla.github.io/Home-Dashboard/
+- [ ] Install on tablet and phones (Add to Home screen)
 
 ## Notes
 
