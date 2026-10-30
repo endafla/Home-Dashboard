@@ -205,6 +205,27 @@ form.inline button.swatch[aria-pressed="true"]{border-color:var(--ink);box-shado
 .tel.missing{color:var(--muted);font-weight:400}
 .emerg{border-color:var(--bad)}
 
+/* Collapsible sections */
+details.fold{padding:0;gap:0;align-self:start}
+details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:16px 18px;min-height:58px;border-radius:var(--r)}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary:hover{background:var(--surface-2)}
+details.fold>summary h2{font-size:1.2rem;font-weight:700;flex:none}
+.fold-sum{margin-left:auto;color:var(--muted);font-size:.9rem;text-align:right;min-width:0;overflow-wrap:anywhere}
+details[open]>summary .fold-sum{display:none}
+details.fold>summary::after,details.cgroup>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-2px);margin-left:6px;flex:none;transition:transform .15s}
+details.fold[open]>summary::after,details.cgroup[open]>summary::after{transform:rotate(-135deg) translateY(-2px)}
+details.fold[open]>summary h2{margin-right:auto}
+.fold-body{padding:0 18px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.fold-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fold-actions .hint{flex:1 1 200px}
+details.cgroup{min-width:0}
+details.cgroup>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);min-height:52px}
+details.cgroup>summary::-webkit-details-marker{display:none}
+details.cgroup>summary .glabel{font-size:1rem;flex:1}
+@media (prefers-reduced-motion:reduce){details.fold>summary::after,details.cgroup>summary::after{transition:none}}
+@media (max-width:700px){details.fold>summary{padding:14px}.fold-body{padding:0 14px 14px}}
+
 /* Dinner planner */
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .week .edit-box{grid-column:1/-1;order:99}
@@ -359,13 +380,13 @@ function seed(){
       {id:id(),title:'NCT',cat:'car',due:iso(t+130*D),repeatDays:0}
     ],
     bills:[
-      {id:id(),title:'Electricity',cat:'dd',due:iso(t+6*D),repeat:'monthly',amount:165},
-      {id:id(),title:'Broadband',cat:'dd',due:iso(t+12*D),repeat:'monthly',amount:55},
-      {id:id(),title:'Mortgage',cat:'dd',due:iso(t+1*D),repeat:'monthly',amount:1250},
-      {id:id(),title:'Car insurance',cat:'renewal',due:iso(t+24*D),repeat:'yearly',amount:640},
-      {id:id(),title:'Home insurance',cat:'renewal',due:iso(t+95*D),repeat:'yearly',amount:410},
-      {id:id(),title:'TV licence',cat:'annual',due:iso(t+48*D),repeat:'yearly',amount:160},
-      {id:id(),title:'Streaming',cat:'sub',due:iso(t+3*D),repeat:'monthly',amount:15.99}
+      {id:id(),title:'Electricity',cat:'dd',due:iso(t+6*D),repeat:'monthly'},
+      {id:id(),title:'Broadband',cat:'dd',due:iso(t+12*D),repeat:'monthly'},
+      {id:id(),title:'Mortgage',cat:'dd',due:iso(t+1*D),repeat:'monthly'},
+      {id:id(),title:'Car insurance',cat:'renewal',due:iso(t+24*D),repeat:'yearly'},
+      {id:id(),title:'Home insurance',cat:'renewal',due:iso(t+95*D),repeat:'yearly'},
+      {id:id(),title:'TV licence',cat:'annual',due:iso(t+48*D),repeat:'yearly'},
+      {id:id(),title:'Streaming',cat:'sub',due:iso(t+3*D),repeat:'monthly'}
     ],
     notes:[
       {id:id(),text:'Dog fed',by:0,at:t-1*H,color:1}
@@ -629,10 +650,11 @@ function contactsPanel(){
     const rows=S.contacts.filter(c=>c.group===g).map(c=>editContact===c.id
       ?`<li><form class="inline" data-form="contact" data-id="${c.id}" style="flex:1"><input id="cName" name="name" required value="${esc(c.name)}" placeholder="Name"><input id="cNum" name="number" value="${esc(c.number)}" placeholder="Phone number" inputmode="tel"><input id="cNote" name="note" value="${esc(c.note||'')}" placeholder="Note (optional)"><button>Save</button><button type="button" class="small-btn" data-act="contactCancel">Cancel</button></form></li>`
       :`<li><div class="li-main"><div class="t">${esc(c.name)}</div>${c.note?`<div class="s">${esc(c.note)}</div>`:''}</div>${c.number?`<a class="tel" href="${telHref(c.number)}">${esc(c.number)}</a>`:'<span class="tel missing">No number</span>'}<button class="small-btn" data-act="contactEdit" data-id="${c.id}">Edit</button><button class="x" aria-label="Delete ${esc(c.name)}" data-act="del" data-col="contacts" data-id="${c.id}">×</button></li>`).join('');
-    return rows?`<div class="group"><span class="glabel">${label}</span><ul class="list">${rows}</ul></div>`:'';
+    const list=S.contacts.filter(c=>c.group===g), have=list.filter(c=>c.number).length, miss=list.length-have;
+    return rows?`<details class="cgroup span-6" data-fold="c-${g}"><summary><span class="glabel">${label}</span><span class="fold-sum">${have} number${have===1?'':'s'}${miss?`, ${miss} to fill in`:''}</span></summary><ul class="list">${rows}</ul></details>`:'';
   }).join('');
   return `<div class="panel span-12"><div class="ptitle"><h2>Contacts and emergency numbers</h2><span class="hint">Emergency and medical numbers with a phone number appear as call buttons above.</span></div>
-    <div class="grid" style="gap:12px 24px">${groups.replace(/<div class="group">/g,'<div class="group span-6">')}</div>
+    <div class="grid" style="gap:12px 24px">${groups}</div>
     <details class="add"><summary>+ Add a contact</summary><form class="inline" data-form="contact"><input id="ncName" name="name" required placeholder="Name"><input id="ncNum" name="number" placeholder="Phone number" inputmode="tel"><select id="ncGroup" name="group">${Object.entries(GROUPS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><input id="ncNote" name="note" placeholder="Note (optional)"><button>Add</button></form></details></div>`;
 }
 
@@ -748,6 +770,12 @@ function renderBaby(){
 
   const qs=listItems('questions');
 
+  const medSum=S.meds.length?S.meds.map(m=>m.name+': '+medState(m).txt).join(' · '):'None set up';
+  const lastG=S.growth.slice().sort((a,b)=>parseDay(b.date)-parseDay(a.date)).find(g=>g.weightKg);
+  const growthSum=lastG?`${lastG.weightKg} kg, ${dayLabel(parseDay(lastG.date))}`:'No measurements yet';
+  const nextA=S.appts.filter(a=>!a.done).sort((a,b)=>parseDay(a.date)-parseDay(b.date))[0];
+  const apptSum=nextA?`Next: ${nextA.title}, ${dayLabel(parseDay(nextA.date))}`:'Nothing booked';
+  const qOpen=S.questions.filter(q=>!q.done).length;
   return `<div class="grid">
     <div class="span-12">${babyTiles()}</div>
     <div class="panel span-8">
@@ -773,7 +801,7 @@ function renderBaby(){
       </div>
       <ul class="list" style="max-height:340px;overflow-y:auto">${tl}</ul>
     </div>
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="b-meds" data-sum="${esc(medSum)}">
       <div class="ptitle"><h2>Medicines and temperature</h2></div>
       <ul class="list">${meds}</ul>
       <details class="add"><summary>+ Add a medicine</summary>
@@ -782,7 +810,7 @@ function renderBaby(){
       </details>
       <form class="inline" data-form="temp"><input class="narrow" id="tempC" name="c" type="number" step="0.1" min="34" max="42" required placeholder="°C" aria-label="Temperature in °C"><button>Log temperature</button></form>
     </div>
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="b-growth" data-sum="${esc(growthSum)}">
       <div class="ptitle"><h2>Growth</h2><span class="hint">Your home copy. The nurse's book is the official record.</span></div>
       ${growthChart()}
       ${growthTable()}
@@ -790,14 +818,14 @@ function renderBaby(){
         <form class="inline" data-form="growth"><input id="gDate" name="date" type="date" value="${iso(now())}" required><input class="narrow" id="gW" name="weightKg" type="number" step="0.01" placeholder="kg"><input class="narrow" id="gL" name="lengthCm" type="number" step="0.1" placeholder="Length cm"><input class="narrow" id="gH" name="headCm" type="number" step="0.1" placeholder="Head cm"><button>Add</button></form>
       </details>
     </div>
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="b-appts" data-sum="${esc(apptSum)}">
       <div class="ptitle"><h2>Appointments and vaccines</h2></div>
       <ul class="list">${appts}</ul>
       <details class="add"><summary>+ Add an appointment</summary>
         <form class="inline" data-form="appt"><input id="aTitle" name="title" required placeholder="What is it"><select id="aKind" name="kind">${Object.entries(APPTKIND).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join('')}</select><input id="aDate" name="date" type="date" required><input class="narrow" id="aTime" name="time" type="time"><button>Add</button></form>
       </details>
     </div>
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="b-qs" data-sum="${qOpen?qOpen+' to ask':'None'}">
       <div class="ptitle"><h2>Questions for the nurse or GP</h2></div>
       <ul class="list">${qs}</ul>
       <form class="inline" data-form="list" data-col="questions"><input id="qText" name="text" required placeholder="Add a question"><button>Add</button></form>
@@ -876,7 +904,8 @@ function renderDinners(){
       </div>
     </form>`;}
   const planned=days.filter(dinnerFor).length;
-  return `<div class="panel span-12">
+  const tn=dinnerFor(iso(now()));
+  return `<div class="panel span-12" data-fold="h-dinners" data-open="1" data-sum="${esc((tn?'Tonight: '+tn.meal+' · ':'')+planned+'/7 planned')}">
     <div class="ptitle"><h2>Dinners</h2>
       <div class="btn-row">
         <button class="small-btn" data-act="dinnerWeek" data-dir="-1" ${dinnerWeek<=0?'disabled style="opacity:.4"':''}>‹ Earlier</button>
@@ -900,7 +929,8 @@ function deliveriesPanel(){
       <button class="check" role="checkbox" aria-checked="${d.done}" aria-label="Mark ${esc(d.item)} arrived" data-act="toggle" data-col="deliveries" data-id="${d.id}">${d.done?'✓':''}</button>
       <div class="li-main"><div class="t">${esc(d.item)}</div><div class="s">${[esc(d.courier),win(d),d.ref?'Ref '+esc(d.ref):'',esc(d.note)].filter(Boolean).join(' · ')}</div></div>
       <span class="row-end">${pill}<button class="x" aria-label="Delete ${esc(d.item)}" data-act="del" data-col="deliveries" data-id="${d.id}">×</button></span></li>`};
-  return `<div class="panel span-12">
+  const todayN=open.filter(d=>parseDay(d.date)===today).length;
+  return `<div class="panel span-12" data-fold="h-deliveries" data-open="1" data-sum="${open.length?(todayN?todayN+' today · ':'')+open.length+' on the way':'Nothing on the way'}">
     <div class="ptitle"><h2>Deliveries</h2>${arrived.length?`<button class="small-btn" data-act="clearTicked" data-col="deliveries">Clear ${arrived.length} arrived</button>`:''}</div>
     <ul class="list">${open.map(row).join('')||'<li class="empty">Nothing on the way.</li>'}${arrived.map(row).join('')}</ul>
     <details class="add"><summary>+ Add a delivery</summary>
@@ -935,27 +965,33 @@ function renderHome(){
   const bins=S.bins.map(b=>({...b,next:nextBin(b)})).sort((a,b)=>a.next-b.next).map(b=>`<div class="bin ${b.next-today<=D?'soon':''}" style="--c:${esc(b.color)}"><span class="can"></span><div class="li-main"><div class="t">${esc(b.name)}</div><div class="s">${dayLabel(b.next)} · every ${b.everyWeeks===1?'week':b.everyWeeks+' weeks'}</div></div></div>`).join('');
   const names=S.settings.names;
   const ticked=S.shopping.filter(s=>s.done).length;
+  const shopN=S.shopping.filter(x=>!x.done).length, todoN=S.todos.filter(x=>!x.done).length;
+  const remSorted=S.reminders.slice().sort((a,b)=>parseDay(a.due)-parseDay(b.due));
+  const overdue=remSorted.filter(r=>parseDay(r.due)<today).length;
+  const remSum=overdue?`${overdue} overdue`:remSorted[0]?`Next: ${remSorted[0].title}, ${dayLabel(parseDay(remSorted[0].due))}`:'None';
+  const nb=S.bins.map(b=>({...b,next:nextBin(b)})).sort((a,b)=>a.next-b.next)[0];
+  const binSum=nb?`${nb.name}, ${dayLabel(nb.next)}`:'';
   return `<div class="grid">
     ${renderDinners()}
     ${deliveriesPanel()}
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="h-shop" data-open="1" data-sum="${shopN} item${shopN===1?'':'s'}">
       <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} ticked</button>`:''}</div>
       <form class="inline" data-form="list" data-col="shopping"><input id="shopText" name="text" required placeholder="Add an item" autocomplete="off"><button>Add</button></form>
       <ul class="list">${listItems('shopping')}</ul>
     </div>
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="h-todo" data-open="1" data-sum="${todoN} to do">
       <div class="ptitle"><h2>To do</h2></div>
       <form class="inline" data-form="list" data-col="todos"><input id="todoText" name="text" required placeholder="Add a job"><select id="todoWho" name="who" aria-label="Who"><option value="">Either</option>${names.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('')}</select><button>Add</button></form>
       <ul class="list">${listItems('todos',true)}</ul>
     </div>
-    <div class="panel span-8">
+    <div class="panel span-8" data-fold="h-rem" data-sum="${esc(remSum)}">
       <div class="ptitle"><h2>Reminders</h2><span class="hint">Dog, home and car. Done moves it to the next due date.</span></div>
       <ul class="list">${rem}</ul>
       <details class="add"><summary>+ Add a reminder</summary>
         <form class="inline" data-form="rem"><input id="rTitle" name="title" required placeholder="e.g. Vet booster"><select id="rCat" name="cat"><option value="dog">Dog</option><option value="home">Home</option><option value="car">Car</option></select><input id="rDue" name="due" type="date" required><input class="narrow" id="rRep" name="repeatDays" type="number" min="0" placeholder="Repeat days"><button>Add</button></form>
       </details>
     </div>
-    <div class="panel span-4">
+    <div class="panel span-4" data-fold="h-bins" data-sum="${esc(binSum)}">
       <div class="ptitle"><h2>Bin collections</h2></div>
       <div class="bins bins-col">${bins}</div>
       <p class="hint">Example schedule. Your collection days get set once, then the board works out every date.</p>
@@ -971,6 +1007,7 @@ function renderMoney(){
   const ddTotal=S.bills.filter(b=>b.repeat==='monthly').reduce((a,b)=>a+(+b.amount||0),0);
   const leftThisMonth=rows.filter(r=>r.next<=monthEnd.getTime()).reduce((a,b)=>a+(+b.amount||0),0);
   const renewals=rows.filter(r=>r.cat==='renewal');
+  const hasAmounts=S.bills.some(b=>b.amount!=null&&b.amount!=='');
   const li=r=>{const st=dueStatus(r.next,r.cat==='renewal'?30:5);const shop=r.cat==='renewal'&&r.next-today<=30*D;return `<li>
     <div class="li-main"><div class="t">${esc(r.title)}</div><div class="s">${BILLCAT[r.cat]} · ${dayLabel(r.next)}${r.repeat!=='none'?' · '+r.repeat:''}</div></div>
     ${shop?'<span class="pill warn">Shop around now</span>':`<span class="pill ${st.cls}">${st.txt}</span>`}
@@ -978,17 +1015,17 @@ function renderMoney(){
     <button class="x" aria-label="Delete ${esc(r.title)}" data-act="del" data-col="bills" data-id="${r.id}">×</button></li>`};
   return `<div class="grid">
     <div class="panel span-12" style="flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px 28px">
-      <div class="stat"><b class="tnum ${moneyShown?'':'blur'}">${euro(ddTotal)}</b><span>monthly debits</span></div>
-      <div class="stat"><b class="tnum ${moneyShown?'':'blur'}">${euro(leftThisMonth)}</b><span>still to go out this month</span></div>
+      <div class="stat"><b class="tnum ${hasAmounts&&!moneyShown?'blur':''}">${hasAmounts?euro(ddTotal):'—'}</b><span>monthly debits</span></div>
+      <div class="stat"><b class="tnum ${hasAmounts&&!moneyShown?'blur':''}">${hasAmounts?euro(leftThisMonth):'—'}</b><span>still to go out this month</span></div>
       <div class="stat"><b class="tnum">${renewals.filter(r=>r.next-today<=30*D).length}</b><span>renewals in 30 days</span></div>
       <div class="hspacer"></div>
-      <button class="iconbtn" aria-pressed="${moneyShown}" data-act="money">${moneyShown?'Hide amounts':'Show amounts'}</button>
+      ${hasAmounts?`<button class="iconbtn" aria-pressed="${moneyShown}" data-act="money">${moneyShown?'Hide amounts':'Show amounts'}</button>`:''}
     </div>
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="m-next" data-open="1" data-sum="${rows.filter(r=>r.next<=today+60*D).length} due">
       <div class="ptitle"><h2>Next 60 days</h2></div>
       <ul class="list">${rows.filter(r=>r.next<=today+60*D).map(li).join('')||'<li class="empty">Nothing due.</li>'}</ul>
     </div>
-    <div class="panel span-6">
+    <div class="panel span-6" data-fold="m-renew" data-sum="${renewals.filter(r=>r.next-today<=30*D).length} in the next 30 days">
       <div class="ptitle"><h2>Renewals</h2><span class="hint">Flagged 30 days out so you can compare before it auto-renews.</span></div>
       <ul class="list">${renewals.map(li).join('')||'<li class="empty">No renewals added.</li>'}</ul>
       <div class="ptitle" style="margin-top:8px"><h2>Later</h2></div>
@@ -1003,6 +1040,24 @@ function renderMoney(){
   </div>`;
 }
 
+/* ---------- Collapsible sections ---------- */
+let FOLDS={}; try{FOLDS=JSON.parse(localStorage.getItem(KEY+'.folds'))||{}}catch(e){FOLDS={}}
+function foldify(root){
+  root.querySelectorAll('.panel[data-fold]').forEach(p=>{
+    const id=p.dataset.fold, open=(id in FOLDS)?FOLDS[id]:p.dataset.open==='1';
+    const d=document.createElement('details'); d.className=p.className+' fold'; d.dataset.fold=id; d.open=open;
+    const sum=document.createElement('summary'); const pt=p.querySelector(':scope>.ptitle');
+    sum.appendChild(pt.querySelector('h2'));
+    const ss=document.createElement('span'); ss.className='fold-sum'; ss.textContent=p.dataset.sum||''; sum.appendChild(ss);
+    const body=document.createElement('div'); body.className='fold-body';
+    if(pt.children.length){const row=document.createElement('div');row.className='fold-actions';[...pt.children].forEach(x=>row.appendChild(x));body.appendChild(row)}
+    pt.remove(); while(p.firstChild)body.appendChild(p.firstChild);
+    d.append(sum,body); p.replaceWith(d);
+  });
+  root.querySelectorAll('details.cgroup[data-fold]').forEach(d=>{const id=d.dataset.fold;d.open=(id in FOLDS)?FOLDS[id]:d.hasAttribute('data-open')});
+}
+document.addEventListener('toggle',e=>{const d=e.target;if(d instanceof HTMLDetailsElement&&d.dataset.fold){FOLDS[d.dataset.fold]=d.open;try{localStorage.setItem(KEY+'.folds',JSON.stringify(FOLDS))}catch(_){}}},true);
+
 /* ---------- Shell ---------- */
 function renderBanner(){
   const el=document.getElementById('banner');
@@ -1014,10 +1069,11 @@ function render(){
   for(const k in views){const v=document.getElementById('view-'+k);v.hidden=k!==tab;}
   const v=document.getElementById('view-'+tab);
   // Preserve open <details> and focused input across re-render
-  const open=[...v.querySelectorAll('details[open]')].map((d,i)=>i);
+  const openAdds=[...v.querySelectorAll('details.add')].map(d=>d.open);
   const focusId=document.activeElement?.id;
   v.innerHTML=views[tab]();
-  v.querySelectorAll('details').forEach((d,i)=>{if(open.includes(i))d.open=true});
+  foldify(v);
+  v.querySelectorAll('details.add').forEach((d,i)=>{if(openAdds[i])d.open=true});
   if(focusId){const f=document.getElementById(focusId);if(f&&v.contains(f))f.focus()}
   document.querySelectorAll('nav.tabs a').forEach(a=>a.setAttribute('aria-current',a.dataset.tab===tab?'page':'false'));
   if(afterRender){const f=afterRender;afterRender=null;f()}

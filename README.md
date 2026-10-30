@@ -18,6 +18,8 @@ Family dashboard for the kitchen tablet and both phones.
 - [x] Household: deliveries (item, courier, day, time window, tracking ref), dinner planner (7-day strip, prep note, ingredients to shopping list), shopping list, to-dos, dog / home / car reminders, bin dates from a repeating schedule
 - [x] Money: debits, renewals (flagged 30 days out), annual bills, subscriptions; amounts hidden by default
 - [x] Night mode (red, dim)
+- [x] Collapsible sections with one-line summaries; open/closed remembered per device
+- [x] No sample money amounts in the code
 - [ ] Separate Supabase project (EU region) + run `schema.sql`
 - [ ] Sign-in for household members; swap local storage for Supabase with live sync
 - [ ] Calendars via private iCal links
