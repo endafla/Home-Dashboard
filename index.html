@@ -21,6 +21,7 @@
   --feed:#2A5D77; --nappy:#8A6630; --sleep:#5A4E8E; --med:#2E7A4D;
   --font-display:'Bricolage Grotesque', ui-rounded, system-ui, sans-serif;
   --font-body:'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --note-1:#FBEDB0; --note-2:#F7D8DF; --note-3:#D4E7F4; --note-4:#DBEFD5;
   --r:14px;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
@@ -29,6 +30,7 @@
   --ok:#6BBF8E; --warn:#E1A84B; --bad:#E47967;
   --ok-bg:#16301F; --warn-bg:#32280E; --bad-bg:#391C17;
   --feed:#7CB3D0; --nappy:#C9A46A; --sleep:#A99BE0; --med:#6BBF8E; color-scheme:dark;
+  --note-1:#4A4120; --note-2:#4A2B34; --note-3:#21384A; --note-4:#284026;
 }}
 :root[data-theme="dark"]{
   --bg:#0E1618; --surface:#162125; --surface-2:#1E2C30; --ink:#E2EBED; --muted:#92A6AB; --line:#29393E;
@@ -36,6 +38,7 @@
   --ok:#6BBF8E; --warn:#E1A84B; --bad:#E47967;
   --ok-bg:#16301F; --warn-bg:#32280E; --bad-bg:#391C17;
   --feed:#7CB3D0; --nappy:#C9A46A; --sleep:#A99BE0; --med:#6BBF8E; color-scheme:dark;
+  --note-1:#4A4120; --note-2:#4A2B34; --note-3:#21384A; --note-4:#284026;
 }
 /* Night mode: red-only, dim. Declared last so it wins over both themes. */
 :root[data-night]{
@@ -44,6 +47,7 @@
   --ok:#D8664C; --warn:#D8664C; --bad:#FF7A5C;
   --ok-bg:#1F0D0B; --warn-bg:#1F0D0B; --bad-bg:#2C0F0B;
   --feed:#D8664C; --nappy:#B5513C; --sleep:#9E4634; --med:#D8664C; color-scheme:dark;
+  --note-1:#1F0D0B; --note-2:#1F0D0B; --note-3:#1F0D0B; --note-4:#1F0D0B;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -151,6 +155,42 @@ details.add[open] summary{margin-bottom:8px}
 .bins-col{flex-direction:column}
 .bins-col .bin{flex:0 0 auto}
 
+/* Weather */
+.wx-now{display:flex;gap:14px 20px;align-items:center;flex-wrap:wrap}
+.wx-temp{font-family:var(--font-display);font-size:clamp(2.6rem,6vw,3.4rem);font-weight:700;line-height:1}
+.wx-icon{color:var(--accent);flex:none}
+.wx-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.wx-meta .t{font-weight:700;font-size:1.1rem}
+.hours{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.hour{flex:0 0 62px;text-align:center;padding:8px 4px;border-radius:10px;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.9rem}
+.hour .ht{color:var(--muted);font-size:.8rem}
+.hour .hv{font-weight:700}
+.hour .hr{font-size:.75rem;color:var(--accent)}
+.hour.now{outline:2px solid var(--accent)}
+
+/* Countdown */
+.cd-days{font-family:var(--font-display);font-size:1.7rem;font-weight:700;line-height:1;min-width:2.2ch;text-align:right}
+.cd-unit{font-size:.8rem;color:var(--muted);width:3.2em}
+
+/* Note board */
+.notes{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.note{background:var(--nc);color:var(--ink);border-radius:4px 4px 16px 4px;padding:12px 12px 10px;min-height:108px;display:flex;flex-direction:column;gap:8px;transform:rotate(var(--rot,0deg));box-shadow:0 1px 3px rgba(0,0,0,.12);min-width:0}
+.note .nt{flex:1;font-size:1.05rem;line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}
+.note .nf{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.note .nf .x{width:32px;height:32px;margin-left:auto;font-size:1.1rem}
+.swatches{display:flex;gap:6px;align-items:center}
+.swatch{width:34px;height:34px;border-radius:8px;border:2px solid var(--line);background:var(--nc)}
+.swatch[aria-pressed="true"]{border-color:var(--ink)}
+form.inline button.swatch{background:var(--nc);border:2px solid var(--line);padding:0;min-height:34px;width:34px;flex:none}
+form.inline button.swatch[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--surface) inset}
+.note-form textarea{flex:1 1 100%;font:inherit;color:inherit;min-height:60px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px;resize:vertical}
+
+/* Emergency */
+.addr{font-family:var(--font-display);font-size:1.7rem;font-weight:700;letter-spacing:.06em;overflow-wrap:anywhere}
+.tel{font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent);text-decoration:none;white-space:nowrap}
+.tel.missing{color:var(--muted);font-weight:400}
+.emerg{border-color:var(--bad)}
+
 /* Dinner planner */
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .week .edit-box{grid-column:1/-1;order:99}
@@ -253,6 +293,18 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function addDays(t,n){const d=new Date(t);d.setDate(d.getDate()+n);return startOfDay(d.getTime())}
 function nextWeekday(dow){const t=startOfDay(now());const d=new Date(t);const diff=(dow-d.getDay()+7)%7;return t+diff*D}
 
+function defaultContacts(){return [
+  {id:uid(),group:'emergency',name:'Ambulance, Garda, Fire',number:'112 or 999',note:'Give the Eircode first'},
+  {id:uid(),group:'medical',name:'Westdoc out-of-hours GP',number:'0818 360 000',note:'Weeknights 6pm to 9am, weekends and bank holidays 24h'},
+  {id:uid(),group:'medical',name:'Poisons Information line',number:'01 809 2166',note:'Public line'},
+  {id:uid(),group:'medical',name:'Our GP',number:'',note:''},
+  {id:uid(),group:'medical',name:'Pharmacy',number:'',note:''},
+  {id:uid(),group:'medical',name:'Public health nurse',number:'',note:''},
+  {id:uid(),group:'medical',name:'Maternity unit',number:'',note:''},
+  {id:uid(),group:'pets',name:'Vet',number:'',note:''},
+  {id:uid(),group:'home',name:'Electrician',number:'',note:''},
+  {id:uid(),group:'home',name:'Plumber',number:'',note:''}
+]}
 function seed(){
   const t=now(), id=uid;
   const tue=nextWeekday(2);
@@ -299,6 +351,13 @@ function seed(){
       {id:id(),title:'TV licence',cat:'annual',due:iso(t+48*D),repeat:'yearly',amount:160},
       {id:id(),title:'Streaming',cat:'sub',due:iso(t+3*D),repeat:'monthly',amount:15.99}
     ],
+    notes:[
+      {id:id(),text:'Vitamin D given this morning',by:1,at:t-3*H,color:1},
+      {id:id(),text:'Courier dropping a parcel Tuesday. Leave it in the porch',by:0,at:t-26*H,color:3},
+      {id:id(),text:'Running low on nappies',by:1,at:t-30*H,color:2}
+    ],
+    countdowns:[{id:id(),title:'Christmas Day',date:'2026-12-25'}],
+    contacts:defaultContacts(),
     dinners:[
       {id:id(),date:iso(t),meal:'Spaghetti bolognese',note:'Mince is in the freezer, take it out in the morning',ingredients:'Mince, Onion, Garlic, Tinned tomatoes, Spaghetti'},
       {id:id(),date:iso(addDays(t,1)),meal:'Chicken curry',note:'Rice cooker takes 25 min',ingredients:'Chicken breasts, Curry paste, Coconut milk, Rice, Peppers'},
@@ -314,13 +373,18 @@ function seed(){
 }
 function emptyState(old){
   return {...seed(),example:false,settings:old.settings,bins:old.bins,meds:[],
-    dinners:[],feeds:[],nappies:[],sleeps:[],doses:[],temps:[],growth:[],appts:[],questions:[],shopping:[],todos:[],reminders:[],bills:[]};
+    notes:[],countdowns:[],contacts:old.contacts||defaultContacts(),dinners:[],feeds:[],nappies:[],sleeps:[],doses:[],temps:[],growth:[],appts:[],questions:[],shopping:[],todos:[],reminders:[],bills:[]};
 }
 
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 if(!S||!S.settings)S=seed();
 if(!S.dinners)S.dinners=S.example?seed().dinners:[];
+if(!S.notes)S.notes=S.example?seed().notes:[];
+if(!S.countdowns)S.countdowns=S.example?seed().countdowns:[];
+if(!S.contacts)S.contacts=defaultContacts();
+if(S.settings.address==null)S.settings.address='';
+if(S.settings.lastAuthor==null)S.settings.lastAuthor=0;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const DB={
   add(col,obj){obj.id=obj.id||uid();S[col].push(obj);save();return obj},
@@ -331,7 +395,7 @@ const DB={
 /* ---------- Formatting ---------- */
 const hm=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
 function dur(ms){ms=Math.max(0,ms);const h=Math.floor(ms/H),m=Math.floor((ms%H)/M);return h?`${h}h ${m}m`:`${m}m`}
-const ago=t=>dur(now()-t)+' ago';
+function ago(t){const ms=now()-t;if(ms<M)return 'just now';if(ms<D)return dur(ms)+' ago';const days=Math.floor(ms/D);return days===1?'yesterday':days+' days ago'}
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function dayLabel(dayT){
@@ -385,7 +449,7 @@ const REMCAT={dog:{n:'Dog',c:'var(--nappy)'},home:{n:'Home',c:'var(--feed)'},car
 const BILLCAT={dd:'Direct debit',renewal:'Renewal',annual:'Annual bill',sub:'Subscription'};
 
 /* ---------- UI state ---------- */
-let dinnerWeek=0, editDay=null, afterRender=null;
+let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null;
 let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, undo=null, toastTimer=null;
 
 /* ---------- Renderers ---------- */
@@ -405,6 +469,117 @@ function babyTiles(compact){
     ?`<div class="tile" style="--c:var(--med)"><span class="eyebrow">${esc(med.name)}</span><div class="big">${ms.ok?'OK now':hm(ms.next)}</div><div class="sub">${ms.ld?'Last given '+ago(ms.ld.at):'No doses logged'}</div></div>`
     :`<div class="tile" style="--c:var(--med)"><span class="eyebrow">Medicines</span><div class="big">—</div><div class="sub">None set up</div></div>`;
   return `<div class="tiles">${feedTile}${napTile}${sleepTile}${medTile}</div>`;
+}
+
+/* Weather: Open-Meteo, Galway city (not the house). Cached 30 min. */
+const WX_LAT=53.27, WX_LON=-9.05, WX_PLACE='Galway';
+let WX=null; try{WX=JSON.parse(localStorage.getItem(KEY+'.wx'))}catch(e){}
+let wxBusy=false;
+async function loadWeather(){
+  if(wxBusy||(WX&&WX.j&&now()-WX.at<30*M))return; wxBusy=true;
+  try{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FDublin&forecast_days=2&wind_speed_unit=kmh`;
+    const r=await fetch(url); if(!r.ok)throw new Error(r.status);
+    WX={at:now(),j:await r.json(),err:false};
+    try{localStorage.setItem(KEY+'.wx',JSON.stringify(WX))}catch(e){}
+  }catch(e){WX=WX&&WX.j?{...WX,err:true}:{at:0,j:null,err:true}}
+  wxBusy=false; if(tab==='today'){const a=document.activeElement;if(!(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName)))render()}
+}
+function wxKind(code,day){
+  if(code===0||code===1)return day?'sun':'moon';
+  if(code===2)return day?'partsun':'partmoon';
+  if(code===3)return 'cloud';
+  if(code===45||code===48)return 'fog';
+  if((code>=71&&code<=77)||code===85||code===86)return 'snow';
+  if(code>=95)return 'storm';
+  return 'rain';
+}
+const WXLABEL={sun:'Sunny',moon:'Clear',partsun:'Bright spells',partmoon:'Partly cloudy',cloud:'Cloudy',fog:'Foggy',snow:'Snow',storm:'Thunder',rain:'Rain'};
+function wxIcon(kind,size){
+  const cloud='<path d="M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.2 11.1 3.5 3.5 0 0 0 7 18z"/>';
+  const sun='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  const moon='<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>';
+  const g={sun,moon,cloud,
+    partsun:'<circle cx="8" cy="8" r="3"/><path d="M8 2v1.5M2 8h1.5M3.8 3.8l1 1M12.2 3.8l-1 1"/><path d="M9 20h9a3.5 3.5 0 0 0 .5-6.96A5 5 0 0 0 9 13.6 3.2 3.2 0 0 0 9 20z"/>',
+    partmoon:'<path d="M11 6.5A4 4 0 1 1 6 2a3.2 3.2 0 0 0 5 4.5z"/><path d="M9 20h9a3.5 3.5 0 0 0 .5-6.96A5 5 0 0 0 9 13.6 3.2 3.2 0 0 0 9 20z"/>',
+    fog:'<path d="M4 9h16M3 13h18M5 17h14"/>',
+    rain:'<path d="M7 15h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.2 8.1 3.5 3.5 0 0 0 7 15z"/><path d="M9 18l-1 3M13 18l-1 3M17 18l-1 3"/>',
+    snow:'<path d="M7 15h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.2 8.1 3.5 3.5 0 0 0 7 15z"/><path d="M9 19h.01M13 20h.01M17 19h.01"/>',
+    storm:'<path d="M7 15h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.2 8.1 3.5 3.5 0 0 0 7 15z"/><path d="M12 15l-2 4h3l-2 4"/>'};
+  return `<svg class="wx-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${g[kind]||cloud}</svg>`;
+}
+function weatherPanel(){
+  const head=`<div class="ptitle"><h2>Weather</h2><span class="hint">${WX_PLACE}</span></div>`;
+  if(!WX||!WX.j){
+    loadWeather();
+    return `<div class="panel span-8">${head}<div class="empty">${WX&&WX.err?'Weather shows when the board is opened from its web link (endafla.github.io/Home-Dashboard).':'Loading the forecast…'}</div></div>`;
+  }
+  const j=WX.j, c=j.current, h=j.hourly, d=j.daily;
+  const k=wxKind(c.weather_code,c.is_day);
+  const nowKey=iso(now())+'T'+pad(new Date().getHours())+':00';
+  let i0=h.time.indexOf(nowKey); if(i0<0)i0=Math.max(0,h.time.findIndex(t=>t>nowKey));
+  const hours=[];for(let i=i0;i<Math.min(i0+12,h.time.length);i++)hours.push(i);
+  const hourHtml=hours.map((i,n)=>`<div class="hour ${n===0?'now':''}"><span class="ht">${n===0?'Now':h.time[i].slice(11,13)}</span>${wxIcon(wxKind(h.weather_code[i],h.is_day[i]),26)}<span class="hv tnum">${Math.round(h.temperature_2m[i])}°</span><span class="hr tnum">${h.precipitation_probability[i]??0}%</span></div>`).join('');
+  // Drying verdict: rest of today until 6pm, or tomorrow if it's late
+  const hr=new Date().getHours(); let dry;
+  if(hr<16){const todays=h.time.map((t,i)=>i).filter(i=>h.time[i].startsWith(iso(now()))&&+h.time[i].slice(11,13)>=hr&&+h.time[i].slice(11,13)<=18);
+    const maxRain=Math.max(0,...todays.map(i=>h.precipitation_probability[i]||0));
+    dry=maxRain<=30?'<span class="pill ok">Good drying day</span>':`<span class="pill neutral">Not a drying day, up to ${maxRain}% rain</span>`;}
+  else{const r=d.precipitation_probability_max[1]??100;dry=r<=30?'<span class="pill ok">Tomorrow looks good for drying</span>':'<span class="pill neutral">Tomorrow is not a drying day</span>';}
+  return `<div class="panel span-8">${head}
+    <div class="wx-now">${wxIcon(k,56)}<div class="wx-temp tnum">${Math.round(c.temperature_2m)}°</div>
+      <div class="wx-meta"><span class="t">${WXLABEL[k]}</span><span class="muted">Feels like ${Math.round(c.apparent_temperature)}° · wind ${Math.round(c.wind_speed_10m)} km/h</span><span class="muted tnum">High ${Math.round(d.temperature_2m_max[0])}° · low ${Math.round(d.temperature_2m_min[0])}° · rain ${d.precipitation_probability_max[0]??0}%</span></div>
+      <div class="hspacer"></div>${dry}</div>
+    <div class="hours" role="list" aria-label="Next 12 hours">${hourHtml}</div>
+    <div class="hint">Updated ${hm(WX.at)}${WX.err?' · offline, showing the last forecast':''}</div>
+  </div>`;
+}
+function countdownPanel(){
+  const today=startOfDay(now());
+  const rows=S.countdowns.map(c=>({...c,t:parseDay(c.date)})).filter(c=>c.t>=today).sort((a,b)=>a.t-b.t);
+  const li=rows.map(c=>{const n=Math.round((c.t-today)/D);return `<li><span class="cd-days tnum">${n===0?'Today':n}</span><span class="cd-unit">${n===0?'':n===1?'day':'days'}</span><div class="li-main"><div class="t">${esc(c.title)}</div><div class="s">${dayLabel(c.t)}${new Date(c.t).getFullYear()!==new Date().getFullYear()?' '+new Date(c.t).getFullYear():''}</div></div><button class="x" aria-label="Remove ${esc(c.title)}" data-act="del" data-col="countdowns" data-id="${c.id}">×</button></li>`}).join('')||'<li class="empty">No countdowns yet.</li>';
+  return `<div class="panel span-4"><div class="ptitle"><h2>Countdown</h2></div><ul class="list">${li}</ul>
+    <details class="add"><summary>+ Add a countdown</summary><form class="inline" data-form="countdown"><input id="cdTitle" name="title" required placeholder="e.g. Baby due"><input id="cdDate" name="date" type="date" required><button>Add</button></form></details></div>`;
+}
+function notesPanel(){
+  const names=S.settings.names;
+  const notes=S.notes.slice().sort((a,b)=>b.at-a.at);
+  const rot=i=>['-0.6deg','0.5deg','-0.3deg','0.7deg','-0.5deg'][i%5];
+  const cards=notes.map((n,i)=>`<div class="note" style="--nc:var(--note-${n.color||1});--rot:${rot(i)}"><div class="nt">${esc(n.text)}</div><div class="nf"><span>${esc(names[n.by]||'')} · ${ago(n.at)}</span><button class="x" aria-label="Remove note" data-act="del" data-col="notes" data-id="${n.id}">×</button></div></div>`).join('');
+  return `<div class="panel span-8"><div class="ptitle"><h2>Notes</h2><span class="hint">Quick messages for whoever's home</span></div>
+    ${cards?`<div class="notes">${cards}</div>`:'<div class="empty">No notes. Leave one for the other person below.</div>'}
+    <form class="inline note-form" data-form="note">
+      <textarea id="noteText" name="text" required maxlength="280" placeholder="Write a note, e.g. Gave Calpol at 4am"></textarea>
+      <select id="noteBy" name="by" aria-label="From" style="flex:0 1 140px">${names.map((n,i)=>`<option value="${i}" ${i===S.settings.lastAuthor?'selected':''}>From ${esc(n)}</option>`).join('')}</select>
+      <div class="swatches" role="group" aria-label="Note colour">${[1,2,3,4].map(c=>`<button type="button" class="swatch" style="--nc:var(--note-${c})" aria-label="Colour ${c}" aria-pressed="${c===noteColor}" data-act="noteColor" data-c="${c}"></button>`).join('')}</div>
+      <button>Post note</button>
+    </form></div>`;
+}
+function telHref(num){const first=String(num).split(/\s+or\s+|\//)[0];return 'tel:'+first.replace(/[^\d+]/g,'')}
+function emergencyPanel(){
+  const a=S.settings.address;
+  const addr=editAddr||!a
+    ?`<form class="inline" data-form="address"><input id="addrInput" name="address" value="${esc(a)}" placeholder="Your Eircode" autocomplete="postal-code"><button>Save</button></form><div class="hint">Saved on this device only, never in the public code.</div>`
+    :`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="addr">${esc(a)}</span><button class="small-btn" data-act="editAddr">Change</button></div>`;
+  const key=S.contacts.filter(c=>c.group==='emergency'||c.group==='medical').filter(c=>c.number);
+  const li=key.map(c=>`<li><div class="li-main"><div class="t">${esc(c.name)}</div>${c.note?`<div class="s">${esc(c.note)}</div>`:''}</div><a class="tel" href="${telHref(c.number)}">${esc(c.number)}</a></li>`).join('');
+  const missing=S.contacts.filter(c=>c.group==='medical'&&!c.number).length;
+  return `<div class="panel span-4 emerg"><div class="ptitle"><h2>Emergency</h2></div>
+    <div><span class="eyebrow">Our Eircode</span>${addr}</div>
+    <ul class="list">${li}</ul>
+    <a href="#home" data-goto="home" class="hint">${missing?`Add ${missing} more number${missing===1?'':'s'} (GP, pharmacy…) in Household`:'Edit contacts in Household'}</a></div>`;
+}
+const GROUPS={emergency:'Emergency',medical:'Medical',pets:'Pets',home:'Home and trades'};
+function contactsPanel(){
+  const groups=Object.entries(GROUPS).map(([g,label])=>{
+    const rows=S.contacts.filter(c=>c.group===g).map(c=>editContact===c.id
+      ?`<li><form class="inline" data-form="contact" data-id="${c.id}" style="flex:1"><input id="cName" name="name" required value="${esc(c.name)}" placeholder="Name"><input id="cNum" name="number" value="${esc(c.number)}" placeholder="Phone number" inputmode="tel"><input id="cNote" name="note" value="${esc(c.note||'')}" placeholder="Note (optional)"><button>Save</button><button type="button" class="small-btn" data-act="contactCancel">Cancel</button></form></li>`
+      :`<li><div class="li-main"><div class="t">${esc(c.name)}</div>${c.note?`<div class="s">${esc(c.note)}</div>`:''}</div>${c.number?`<a class="tel" href="${telHref(c.number)}">${esc(c.number)}</a>`:'<span class="tel missing">No number</span>'}<button class="small-btn" data-act="contactEdit" data-id="${c.id}">Edit</button><button class="x" aria-label="Delete ${esc(c.name)}" data-act="del" data-col="contacts" data-id="${c.id}">×</button></li>`).join('');
+    return rows?`<div class="group"><span class="glabel">${label}</span><ul class="list">${rows}</ul></div>`:'';
+  }).join('');
+  return `<div class="panel span-12"><div class="ptitle"><h2>Contacts and emergency numbers</h2><span class="hint">Emergency and medical numbers also show on the Today screen.</span></div>
+    <div class="grid" style="gap:12px 24px">${groups.replace(/<div class="group">/g,'<div class="group span-6">')}</div>
+    <details class="add"><summary>+ Add a contact</summary><form class="inline" data-form="contact"><input id="ncName" name="name" required placeholder="Name"><input id="ncNum" name="number" placeholder="Phone number" inputmode="tel"><select id="ncGroup" name="group">${Object.entries(GROUPS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><input id="ncNote" name="note" placeholder="Note (optional)"><button>Add</button></form></details></div>`;
 }
 
 function tonightPanel(){
@@ -446,6 +621,10 @@ function renderToday(){
 
   return `<div class="grid">
     <div class="span-12">${babyTiles()}</div>
+    ${weatherPanel()}
+    ${countdownPanel()}
+    ${notesPanel()}
+    ${emergencyPanel()}
     ${tonightPanel()}
     <div class="panel span-4">
       <div class="ptitle"><h2>Today's plans</h2><span class="pill neutral">Example events</span></div>
@@ -694,6 +873,7 @@ function renderHome(){
       <div class="bins bins-col">${bins}</div>
       <p class="hint">Example schedule. Your collection days get set once, then the board works out every date.</p>
     </div>
+    ${contactsPanel()}
   </div>`;
 }
 
@@ -794,6 +974,10 @@ const ACT={
   dinnerToShop(d){const x=dinnerFor(d.day);if(!x)return;const n=addToShopping(splitIngredients(x.ingredients));toast(n?`Added ${n} item${n===1?'':'s'} to shopping`:'Already on the list')},
   weekToShop(){const items=weekDays().map(dinnerFor).filter(Boolean).flatMap(x=>splitIngredients(x.ingredients));const n=addToShopping(items);toast(n?`Added ${n} item${n===1?'':'s'} to shopping`:'Nothing new to add')},
   planTonight(){editDay=iso(now());dinnerWeek=0;location.hash='home'},
+  noteColor(d){noteColor=+d.c},
+  editAddr(){editAddr=true;afterRender=()=>document.getElementById('addrInput')?.focus()},
+  contactEdit(d){editContact=d.id},
+  contactCancel(){editContact=null},
   shift(d){S.settings.nightShift=+d.i;save()},
   money(){moneyShown=!moneyShown},
   clearExample(){if(!confirmClear){confirmClear=true;setTimeout(()=>{confirmClear=false;renderBanner()},5000);return}confirmClear=false;S=emptyState(S);save();toast('Examples cleared')}
@@ -819,6 +1003,11 @@ const FORMS={
     else DB.add('dinners',{date:f.date,meal,note:f.note.trim(),ingredients:ing});
     editDay=null; toast('Dinner saved');
   },
+  note(f){const by=+f.by;S.settings.lastAuthor=by;DB.add('notes',{text:f.text.trim(),by,at:now(),color:noteColor});toast('Note posted')},
+  countdown(f){DB.add('countdowns',{title:f.title.trim(),date:f.date});toast('Countdown added')},
+  address(f){S.settings.address=f.address.trim().toUpperCase();editAddr=false;save()},
+  contact(f,form){const o={name:f.name.trim(),number:(f.number||'').trim(),note:(f.note||'').trim()};
+    if(form.dataset.id){DB.update('contacts',form.dataset.id,o);editContact=null;toast('Saved')}else{DB.add('contacts',{...o,group:f.group});toast('Contact added')}},
   rem(f){DB.add('reminders',{title:f.title.trim(),cat:f.cat,due:f.due,repeatDays:+f.repeatDays||0});toast('Reminder added')},
   bill(f){DB.add('bills',{title:f.title.trim(),cat:f.cat,due:f.due,repeat:f.repeat,amount:f.amount===''?null:+f.amount});toast('Added')}
 };
@@ -837,7 +1026,8 @@ let wake=null;
 async function requestWake(){if(wake||!navigator.wakeLock)return;try{wake=await navigator.wakeLock.request('screen');wake.addEventListener('release',()=>wake=null)}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWake()});
 try{if(localStorage.getItem(KEY+'.night')){document.documentElement.setAttribute('data-night','');document.getElementById('nightBtn').setAttribute('aria-pressed','true')}}catch(e){}
-tick(); route();
+tick(); route(); loadWeather();
+setInterval(loadWeather,10*60e3);
 setInterval(()=>{tick();const a=document.activeElement;if(!(a&&(a.tagName==='INPUT'||a.tagName==='SELECT')))render()},30000);
 </script>
 
