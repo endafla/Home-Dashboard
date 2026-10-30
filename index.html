@@ -169,6 +169,11 @@ details.add[open] summary{margin-bottom:8px}
 .hour.now{outline:2px solid var(--accent)}
 
 /* Countdown */
+.preg{display:flex;flex-direction:column;gap:6px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.preg-big{font-family:var(--font-display);font-size:clamp(1.8rem,3.4vw,2.4rem);font-weight:700;line-height:1.05}
+.preg-bar{height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.preg-bar span{display:block;height:100%;background:var(--sleep);border-radius:999px}
+.preg-row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
 .cd-days{font-family:var(--font-display);font-size:1.7rem;font-weight:700;line-height:1;min-width:2.2ch;text-align:right}
 .cd-unit{font-size:.8rem;color:var(--muted);width:3.2em}
 
@@ -384,6 +389,8 @@ if(!S.notes)S.notes=S.example?seed().notes:[];
 if(!S.countdowns)S.countdowns=S.example?seed().countdowns:[];
 if(!S.contacts)S.contacts=defaultContacts();
 if(S.settings.address==null)S.settings.address='';
+if(S.settings.dueDate==null)S.settings.dueDate='';
+if(S.settings.pregStart==null)S.settings.pregStart='';
 if(S.settings.lastAuthor==null)S.settings.lastAuthor=0;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const DB={
@@ -449,7 +456,7 @@ const REMCAT={dog:{n:'Dog',c:'var(--nappy)'},home:{n:'Home',c:'var(--feed)'},car
 const BILLCAT={dd:'Direct debit',renewal:'Renewal',annual:'Annual bill',sub:'Subscription'};
 
 /* ---------- UI state ---------- */
-let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null;
+let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null, editPreg=false;
 let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, undo=null, toastTimer=null;
 
 /* ---------- Renderers ---------- */
@@ -534,11 +541,34 @@ function weatherPanel(){
     <div class="hint">Updated ${hm(WX.at)}${WX.err?' · offline, showing the last forecast':''}</div>
   </div>`;
 }
+function pregBlock(){
+  const st=S.settings, today=startOfDay(now());
+  if(editPreg||!st.dueDate){
+    return `<form class="preg" data-form="preg"><span class="eyebrow">Pregnancy</span>
+      <label class="hint" for="pDue">Due date</label><input id="pDue" name="dueDate" type="date" required value="${esc(st.dueDate)}" style="min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
+      <label class="hint" for="pStart">Pregnancy started (first day of last period). Leave blank to work it out from the due date.</label><input id="pStart" name="pregStart" type="date" value="${esc(st.pregStart)}" style="min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
+      <div class="btn-row"><button class="act solid" style="--c:var(--sleep);min-height:46px;flex:1">Save</button>${st.dueDate?'<button type="button" class="small-btn" data-act="pregCancel">Cancel</button>':''}</div>
+      <span class="hint">Saved on this device only, never in the public code.</span></form>`;
+  }
+  const due=parseDay(st.dueDate);
+  const start=st.pregStart?parseDay(st.pregStart):addDays(due,-280);
+  const days=Math.round((today-start)/D), wk=Math.floor(days/7), dd=days%7;
+  const toGo=Math.round((due-today)/D);
+  const pct=Math.max(0,Math.min(100,days/280*100));
+  const tri=wk<13?'First trimester':wk<27?'Second trimester':'Third trimester';
+  const dueTxt=`${DOW[new Date(due).getDay()]} ${new Date(due).getDate()} ${MON[new Date(due).getMonth()]} ${new Date(due).getFullYear()}`;
+  return `<div class="preg"><div class="ptitle"><span class="eyebrow">Pregnancy</span><button class="small-btn" data-act="pregEdit">Edit</button></div>
+    <div class="preg-big tnum">${wk} weeks ${dd} day${dd===1?'':'s'}</div>
+    <div class="preg-bar" role="progressbar" aria-valuemin="0" aria-valuemax="40" aria-valuenow="${wk}" aria-label="Weeks of 40"><span style="width:${pct.toFixed(1)}%"></span></div>
+    <div class="preg-row"><span>${tri}</span><span class="tnum">${wk} of 40 weeks</span></div>
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="cd-days tnum" style="text-align:left">${toGo>0?toGo:toGo===0?'Today':Math.abs(toGo)}</span><span class="t" style="font-weight:700">${toGo>0?(toGo===1?'day':'days')+' until the due date':toGo===0?'is the due date':(Math.abs(toGo)===1?'day':'days')+' past the due date'}</span></div>
+    <div class="hint">Due ${dueTxt}</div></div>`;
+}
 function countdownPanel(){
   const today=startOfDay(now());
   const rows=S.countdowns.map(c=>({...c,t:parseDay(c.date)})).filter(c=>c.t>=today).sort((a,b)=>a.t-b.t);
   const li=rows.map(c=>{const n=Math.round((c.t-today)/D);return `<li><span class="cd-days tnum">${n===0?'Today':n}</span><span class="cd-unit">${n===0?'':n===1?'day':'days'}</span><div class="li-main"><div class="t">${esc(c.title)}</div><div class="s">${dayLabel(c.t)}${new Date(c.t).getFullYear()!==new Date().getFullYear()?' '+new Date(c.t).getFullYear():''}</div></div><button class="x" aria-label="Remove ${esc(c.title)}" data-act="del" data-col="countdowns" data-id="${c.id}">×</button></li>`}).join('')||'<li class="empty">No countdowns yet.</li>';
-  return `<div class="panel span-4"><div class="ptitle"><h2>Countdown</h2></div><ul class="list">${li}</ul>
+  return `<div class="panel span-4"><div class="ptitle"><h2>Countdown</h2></div>${pregBlock()}<ul class="list">${li}</ul>
     <details class="add"><summary>+ Add a countdown</summary><form class="inline" data-form="countdown"><input id="cdTitle" name="title" required placeholder="e.g. Baby due"><input id="cdDate" name="date" type="date" required><button>Add</button></form></details></div>`;
 }
 function notesPanel(){
@@ -974,6 +1004,8 @@ const ACT={
   dinnerToShop(d){const x=dinnerFor(d.day);if(!x)return;const n=addToShopping(splitIngredients(x.ingredients));toast(n?`Added ${n} item${n===1?'':'s'} to shopping`:'Already on the list')},
   weekToShop(){const items=weekDays().map(dinnerFor).filter(Boolean).flatMap(x=>splitIngredients(x.ingredients));const n=addToShopping(items);toast(n?`Added ${n} item${n===1?'':'s'} to shopping`:'Nothing new to add')},
   planTonight(){editDay=iso(now());dinnerWeek=0;location.hash='home'},
+  pregEdit(){editPreg=true},
+  pregCancel(){editPreg=false},
   noteColor(d){noteColor=+d.c},
   editAddr(){editAddr=true;afterRender=()=>document.getElementById('addrInput')?.focus()},
   contactEdit(d){editContact=d.id},
@@ -1003,6 +1035,7 @@ const FORMS={
     else DB.add('dinners',{date:f.date,meal,note:f.note.trim(),ingredients:ing});
     editDay=null; toast('Dinner saved');
   },
+  preg(f){S.settings.dueDate=f.dueDate;S.settings.pregStart=f.pregStart||'';editPreg=false;save();toast('Saved')},
   note(f){const by=+f.by;S.settings.lastAuthor=by;DB.add('notes',{text:f.text.trim(),by,at:now(),color:noteColor});toast('Note posted')},
   countdown(f){DB.add('countdowns',{title:f.title.trim(),date:f.date});toast('Countdown added')},
   address(f){S.settings.address=f.address.trim().toUpperCase();editAddr=false;save()},
