@@ -82,6 +82,18 @@ create table appointments (
   done boolean not null default false
 );
 
+-- Dinner planner: one evening meal per day
+create table dinners (
+  id uuid primary key default gen_random_uuid(),
+  household_id uuid not null references households(id) on delete cascade,
+  on_date date not null,
+  meal text not null,
+  start_by time,
+  note text,
+  ingredients text,
+  unique (household_id, on_date)
+);
+
 -- Lists: shopping, todos, questions for nurse/GP
 create table list_items (
   id uuid primary key default gen_random_uuid(),
@@ -129,7 +141,7 @@ do $$
 declare t text;
 begin
   foreach t in array array['feeds','nappies','sleeps','medicines','doses','temperatures','growth',
-                           'appointments','list_items','reminders','bins','bills'] loop
+                           'appointments','list_items','reminders','bins','bills','dinners'] loop
     execute format('alter table %I enable row level security', t);
     execute format('create policy "members read" on %I for select using (is_member(household_id))', t);
     execute format('create policy "members write" on %I for all using (is_member(household_id)) with check (is_member(household_id))', t);
@@ -143,4 +155,4 @@ alter table household_members enable row level security;
 create policy "members read members" on household_members for select using (is_member(household_id));
 
 -- Live sync to tablet and phones
-alter publication supabase_realtime add table feeds, nappies, sleeps, doses, list_items;
+alter publication supabase_realtime add table feeds, nappies, sleeps, doses, list_items, dinners;

@@ -148,6 +148,28 @@ details.add[open] summary{margin-bottom:8px}
 .bin .can{width:22px;height:28px;border-radius:4px 4px 6px 6px;background:var(--c);flex:none;position:relative}
 .bin .can::before{content:"";position:absolute;left:-3px;right:-3px;top:-5px;height:5px;border-radius:3px;background:var(--c)}
 .bin.soon{outline:2px solid var(--gorse)}
+.bins-col{flex-direction:column}
+.bins-col .bin{flex:0 0 auto}
+
+/* Dinner planner */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+@media (max-width:900px){.week{grid-template-columns:1fr}}
+.day{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;background:var(--surface);text-align:left;min-height:128px;min-width:0;font:inherit;color:inherit}
+@media (max-width:900px){.day{min-height:0}}
+.day:hover{background:var(--surface-2)}
+.day.is-today{border:2px solid var(--accent)}
+.day.is-editing{background:var(--surface-2);border-color:var(--gorse)}
+.day .dname{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}
+.day.is-today .dname{color:var(--accent)}
+.day .meal{font-family:var(--font-display);font-weight:700;font-size:1.05rem;line-height:1.2;overflow-wrap:anywhere}
+.day.empty .meal{color:var(--muted);font-weight:500;font-family:var(--font-body);font-size:.95rem}
+.day .dnote{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.tonight{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,3vw,2rem);line-height:1.1;overflow-wrap:anywhere}
+.edit-box{border:2px solid var(--gorse);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.edit-box textarea{font:inherit;color:inherit;width:100%;min-height:70px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px;resize:vertical}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;min-width:0}
+.btn-row .small-btn{flex:0 1 auto;white-space:normal;text-align:left}
+.ptitle{min-width:0}
 
 /* Money */
 .amount{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
@@ -226,6 +248,7 @@ const parseDay=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,
 const startOfDay=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+function addDays(t,n){const d=new Date(t);d.setDate(d.getDate()+n);return startOfDay(d.getTime())}
 function nextWeekday(dow){const t=startOfDay(now());const d=new Date(t);const diff=(dow-d.getDay()+7)%7;return t+diff*D}
 
 function seed(){
@@ -274,6 +297,12 @@ function seed(){
       {id:id(),title:'TV licence',cat:'annual',due:iso(t+48*D),repeat:'yearly',amount:160},
       {id:id(),title:'Streaming',cat:'sub',due:iso(t+3*D),repeat:'monthly',amount:15.99}
     ],
+    dinners:[
+      {id:id(),date:iso(t),meal:'Spaghetti bolognese',startBy:'18:00',note:'Mince is in the freezer, take it out in the morning',ingredients:'Mince, Onion, Garlic, Tinned tomatoes, Spaghetti'},
+      {id:id(),date:iso(addDays(t,1)),meal:'Chicken curry',startBy:'18:15',note:'Rice cooker takes 25 min',ingredients:'Chicken breasts, Curry paste, Coconut milk, Rice, Peppers'},
+      {id:id(),date:iso(addDays(t,2)),meal:'Salmon traybake',startBy:'18:30',note:'',ingredients:'Salmon fillets, Baby potatoes, Broccoli, Lemon'},
+      {id:id(),date:iso(addDays(t,4)),meal:'Leftovers',startBy:'',note:'',ingredients:''}
+    ],
     bins:[
       {id:id(),name:'General',color:'#4B5257',anchor:iso(tue),everyWeeks:2},
       {id:id(),name:'Recycling',color:'#2C6CB0',anchor:iso(tue+7*D),everyWeeks:2},
@@ -283,12 +312,13 @@ function seed(){
 }
 function emptyState(old){
   return {...seed(),example:false,settings:old.settings,bins:old.bins,meds:[],
-    feeds:[],nappies:[],sleeps:[],doses:[],temps:[],growth:[],appts:[],questions:[],shopping:[],todos:[],reminders:[],bills:[]};
+    dinners:[],feeds:[],nappies:[],sleeps:[],doses:[],temps:[],growth:[],appts:[],questions:[],shopping:[],todos:[],reminders:[],bills:[]};
 }
 
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 if(!S||!S.settings)S=seed();
+if(!S.dinners)S.dinners=S.example?seed().dinners:[];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const DB={
   add(col,obj){obj.id=obj.id||uid();S[col].push(obj);save();return obj},
@@ -353,6 +383,7 @@ const REMCAT={dog:{n:'Dog',c:'var(--nappy)'},home:{n:'Home',c:'var(--feed)'},car
 const BILLCAT={dd:'Direct debit',renewal:'Renewal',annual:'Annual bill',sub:'Subscription'};
 
 /* ---------- UI state ---------- */
+let dinnerWeek=0, editDay=null;
 let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, undo=null, toastTimer=null;
 
 /* ---------- Renderers ---------- */
@@ -372,6 +403,22 @@ function babyTiles(compact){
     ?`<div class="tile" style="--c:var(--med)"><span class="eyebrow">${esc(med.name)}</span><div class="big">${ms.ok?'OK now':hm(ms.next)}</div><div class="sub">${ms.ld?'Last given '+ago(ms.ld.at):'No doses logged'}</div></div>`
     :`<div class="tile" style="--c:var(--med)"><span class="eyebrow">Medicines</span><div class="big">—</div><div class="sub">None set up</div></div>`;
   return `<div class="tiles">${feedTile}${napTile}${sleepTile}${medTile}</div>`;
+}
+
+function tonightPanel(){
+  const d=dinnerFor(iso(now()));
+  if(!d)return `<div class="panel span-4"><div class="ptitle"><h2>Tonight's dinner</h2></div><div class="empty">Nothing planned yet.</div><button class="small-btn" style="align-self:flex-start" data-act="planTonight">Plan tonight's dinner</button></div>`;
+  let pill='';
+  if(d.startBy){const [h,m]=d.startBy.split(':').map(Number);const st=new Date();st.setHours(h,m,0,0);const diff=st.getTime()-now();
+    pill=diff<=-90*M?`<span class="pill neutral">Planned for ${esc(d.startBy)}</span>`:diff<=0?`<span class="pill bad">Start now, was due ${esc(d.startBy)}</span>`:diff<=60*M?`<span class="pill warn">Start by ${esc(d.startBy)}, in ${dur(diff)}</span>`:`<span class="pill neutral">Start by ${esc(d.startBy)}</span>`;}
+  const tomorrow=dinnerFor(iso(addDays(now(),1)));
+  return `<div class="panel span-4">
+    <div class="ptitle"><h2>Tonight's dinner</h2></div>
+    <div class="tonight">${esc(d.meal)}</div>
+    ${pill?`<div>${pill}</div>`:''}
+    ${d.note?`<div>${esc(d.note)}</div>`:''}
+    ${tomorrow?`<div class="hint">Tomorrow: ${esc(tomorrow.meal)}${tomorrow.note?'. '+esc(tomorrow.note):''}</div>`:''}
+  </div>`;
 }
 
 function renderToday(){
@@ -401,12 +448,13 @@ function renderToday(){
 
   return `<div class="grid">
     <div class="span-12">${babyTiles()}</div>
-    <div class="panel span-6">
+    ${tonightPanel()}
+    <div class="panel span-4">
       <div class="ptitle"><h2>Today's plans</h2><span class="pill neutral">Example events</span></div>
       <ul class="list">${evHtml}</ul>
       <div class="hint">Your and Sabrina's calendars appear here once their links are added.</div>
     </div>
-    <div class="panel span-6">
+    <div class="panel span-4">
       <div class="ptitle"><h2>Coming up this week</h2></div>
       <ul class="list">${upHtml}</ul>
     </div>
@@ -565,6 +613,58 @@ function listItems(col,withWho){
     <button class="x" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="${col}" data-id="${i.id}">×</button></li>`).join('')||'<li class="empty">Nothing here.</li>';
 }
 
+function dinnerFor(day){return S.dinners.find(d=>d.date===day)}
+function pastMeals(){const seen=new Map();S.dinners.slice().sort((a,b)=>parseDay(a.date)-parseDay(b.date)).forEach(d=>{if(d.meal)seen.set(d.meal.toLowerCase(),d)});return [...seen.values()]}
+function splitIngredients(str){return String(str||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean)}
+function weekDays(){const base=addDays(now(),dinnerWeek*7);return [0,1,2,3,4,5,6].map(i=>iso(addDays(base,i)))}
+function renderDinners(){
+  const todayIso=iso(now()); const days=weekDays();
+  const cards=days.map(day=>{const d=dinnerFor(day);const t=parseDay(day);const dt=new Date(t);
+    const name=day===todayIso?'Tonight':(DOW[dt.getDay()]+' '+dt.getDate());
+    return `<button class="day ${d?'':'empty'} ${day===todayIso?'is-today':''} ${editDay===day?'is-editing':''}" data-act="dinnerEdit" data-day="${day}" aria-label="${d?'Edit':'Plan'} dinner for ${name}">
+      <span class="dname">${name}</span>
+      <span class="meal">${d?esc(d.meal):'+ Plan dinner'}</span>
+      ${d&&d.startBy?`<span class="pill neutral" style="align-self:flex-start">Start by ${esc(d.startBy)}</span>`:''}
+      ${d&&d.note?`<span class="dnote">${esc(d.note)}</span>`:''}
+    </button>`}).join('');
+  let editor='';
+  if(editDay){const d=dinnerFor(editDay)||{};const dt=new Date(parseDay(editDay));
+    editor=`<form class="edit-box" data-form="dinner">
+      <div class="ptitle"><h3>${editDay===todayIso?'Tonight':DOW[dt.getDay()]+' '+dt.getDate()+' '+MON[dt.getMonth()]}</h3><button type="button" class="x" aria-label="Close" data-act="dinnerClose">×</button></div>
+      <input type="hidden" name="date" value="${editDay}">
+      <div class="inline" style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="dMeal" name="meal" list="pastMeals" required placeholder="What's for dinner" value="${esc(d.meal||'')}" style="flex:2 1 200px;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
+        <input id="dStart" name="startBy" type="time" value="${esc(d.startBy||'')}" aria-label="Start cooking by" style="flex:0 1 130px;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
+      </div>
+      <datalist id="pastMeals">${pastMeals().map(m=>`<option value="${esc(m.meal)}">`).join('')}</datalist>
+      <input id="dNote" name="note" placeholder="Prep note, e.g. take chicken out of the freezer" value="${esc(d.note||'')}" style="min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
+      <textarea id="dIng" name="ingredients" placeholder="Ingredients, separated by commas">${esc(d.ingredients||'')}</textarea>
+      <p class="hint">Pick a meal you've had before and its ingredients fill in automatically if you leave them blank.</p>
+      <div class="btn-row">
+        <button class="act solid" style="--c:var(--accent);min-height:48px;flex:1 1 120px">Save</button>
+        ${d.id?`<button type="button" class="small-btn" data-act="dinnerToShop" data-day="${editDay}">Add ingredients to shopping</button><button type="button" class="small-btn" data-act="dinnerClear" data-day="${editDay}">Clear this day</button>`:''}
+      </div>
+    </form>`;}
+  const planned=days.filter(dinnerFor).length;
+  return `<div class="panel span-12">
+    <div class="ptitle"><h2>Dinners</h2>
+      <div class="btn-row">
+        <button class="small-btn" data-act="dinnerWeek" data-dir="-1" ${dinnerWeek<=0?'disabled style="opacity:.4"':''}>‹ Earlier</button>
+        <span class="hint" style="align-self:center">${dinnerWeek===0?'Next 7 days':dinnerWeek===1?'The 7 days after':'In '+dinnerWeek+' weeks'} · ${planned}/7 planned</span>
+        <button class="small-btn" data-act="dinnerWeek" data-dir="1">Later ›</button>
+        <button class="small-btn" data-act="weekToShop">Add these 7 days' ingredients to shopping</button>
+      </div>
+    </div>
+    <div class="week">${cards}</div>
+    ${editor}
+  </div>`;
+}
+function addToShopping(items){
+  const have=new Set(S.shopping.filter(x=>!x.done).map(x=>x.text.trim().toLowerCase()));
+  let n=0; items.forEach(i=>{const k=i.toLowerCase();if(!have.has(k)){have.add(k);DB.add('shopping',{text:i,done:false});n++}});
+  return n;
+}
+
 function renderHome(){
   const today=startOfDay(now());
   const rem=S.reminders.slice().sort((a,b)=>parseDay(a.due)-parseDay(b.due)).map(r=>{const c=REMCAT[r.cat];const st=dueStatus(parseDay(r.due),14);return `<li>
@@ -576,6 +676,7 @@ function renderHome(){
   const names=S.settings.names;
   const ticked=S.shopping.filter(s=>s.done).length;
   return `<div class="grid">
+    ${renderDinners()}
     <div class="panel span-6">
       <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} ticked</button>`:''}</div>
       <form class="inline" data-form="list" data-col="shopping"><input id="shopText" name="text" required placeholder="Add an item" autocomplete="off"><button>Add</button></form>
@@ -595,7 +696,7 @@ function renderHome(){
     </div>
     <div class="panel span-4">
       <div class="ptitle"><h2>Bin collections</h2></div>
-      <div class="bins" style="flex-direction:column">${bins}</div>
+      <div class="bins bins-col">${bins}</div>
       <p class="hint">Example schedule. Your collection days get set once, then the board works out every date.</p>
     </div>
   </div>`;
@@ -690,6 +791,13 @@ const ACT={
   remDone(d){const r=S.reminders.find(x=>x.id===d.id);if(!r)return;
     if(r.repeatDays>0){let t=Math.max(parseDay(r.due),startOfDay(now()));t+=r.repeatDays*D;DB.update('reminders',r.id,{due:iso(t)});toast(`${r.title}: next due ${dayLabel(t)}`)}
     else{const o=DB.remove('reminders',r.id);undo={col:'reminders',obj:o};toast(r.title+' done',true)}},
+  dinnerEdit(d){editDay=editDay===d.day?null:d.day},
+  dinnerClose(){editDay=null},
+  dinnerWeek(d){dinnerWeek=Math.max(0,dinnerWeek+(+d.dir));editDay=null},
+  dinnerClear(d){const x=dinnerFor(d.day);if(x){const o=DB.remove('dinners',x.id);undo={col:'dinners',obj:o};toast('Cleared',true)}editDay=null},
+  dinnerToShop(d){const x=dinnerFor(d.day);if(!x)return;const n=addToShopping(splitIngredients(x.ingredients));toast(n?`Added ${n} item${n===1?'':'s'} to shopping`:'Already on the list')},
+  weekToShop(){const items=weekDays().map(dinnerFor).filter(Boolean).flatMap(x=>splitIngredients(x.ingredients));const n=addToShopping(items);toast(n?`Added ${n} item${n===1?'':'s'} to shopping`:'Nothing new to add')},
+  planTonight(){editDay=iso(now());dinnerWeek=0;location.hash='home'},
   shift(d){S.settings.nightShift=+d.i;save()},
   money(){moneyShown=!moneyShown},
   clearExample(){if(!confirmClear){confirmClear=true;setTimeout(()=>{confirmClear=false;renderBanner()},5000);return}confirmClear=false;S=emptyState(S);save();toast('Examples cleared')}
@@ -707,6 +815,14 @@ const FORMS={
   growth(f){DB.add('growth',{date:f.date,weightKg:f.weightKg?+f.weightKg:null,lengthCm:f.lengthCm?+f.lengthCm:null,headCm:f.headCm?+f.headCm:null});toast('Measurement added')},
   appt(f){DB.add('appts',{title:f.title.trim(),kind:f.kind,date:f.date,time:f.time,done:false});toast('Appointment added')},
   list(f,form){const o={text:f.text.trim(),done:false};if('who' in f)o.who=f.who===''?null:+f.who;DB.add(form.dataset.col,o)},
+  dinner(f){
+    const meal=f.meal.trim(); let ing=f.ingredients.trim();
+    if(!ing){const prev=pastMeals().find(m=>m.meal.toLowerCase()===meal.toLowerCase()&&m.date!==f.date);if(prev)ing=prev.ingredients||''}
+    const ex=dinnerFor(f.date);
+    if(ex)DB.update('dinners',ex.id,{meal,startBy:f.startBy,note:f.note.trim(),ingredients:ing});
+    else DB.add('dinners',{date:f.date,meal,startBy:f.startBy,note:f.note.trim(),ingredients:ing});
+    editDay=null; toast('Dinner saved');
+  },
   rem(f){DB.add('reminders',{title:f.title.trim(),cat:f.cat,due:f.due,repeatDays:+f.repeatDays||0});toast('Reminder added')},
   bill(f){DB.add('bills',{title:f.title.trim(),cat:f.cat,due:f.due,repeat:f.repeat,amount:f.amount===''?null:+f.amount});toast('Added')}
 };
