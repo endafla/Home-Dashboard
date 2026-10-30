@@ -233,7 +233,7 @@ function seed(){
   const tue=nextWeekday(2);
   return {
     example:true,
-    settings:{names:['Parent 1','Parent 2'],nightShift:0},
+    settings:{names:['Enda','Sabrina'],nightShift:0},
     feeds:[
       {id:id(),start:t-2.3*H,end:t-2.3*H+18*M,kind:'left'},
       {id:id(),start:t-5.1*H,end:t-5.1*H+14*M,kind:'right'},
@@ -383,8 +383,8 @@ function renderToday(){
 
   // Example calendar events (replaced by iCal feeds after setup)
   const ev=[
-    {time:'09:30',title:'Gym class',who:'Parent 2',c:'var(--sleep)'},
-    {time:'11:00',title:'Team call',who:'Parent 1',c:'var(--feed)'},
+    {time:'09:30',title:'Gym class',who:'Sabrina',c:'var(--sleep)'},
+    {time:'11:00',title:'Team call',who:'Enda',c:'var(--feed)'},
     {time:'19:00',title:'Dinner with friends',who:'Shared',c:'var(--gorse)'}
   ];
   const evHtml=ev.map(e=>`<li><span class="dot" style="--c:${e.c}"></span><div class="li-main"><div class="t">${esc(e.title)}</div><div class="s">${e.who}</div></div><span class="tnum muted">${e.time}</span></li>`).join('');
@@ -404,7 +404,7 @@ function renderToday(){
     <div class="panel span-6">
       <div class="ptitle"><h2>Today's plans</h2><span class="pill neutral">Example events</span></div>
       <ul class="list">${evHtml}</ul>
-      <div class="hint">Your calendars appear here once their links are added.</div>
+      <div class="hint">Your and Sabrina's calendars appear here once their links are added.</div>
     </div>
     <div class="panel span-6">
       <div class="ptitle"><h2>Coming up this week</h2></div>
