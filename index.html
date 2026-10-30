@@ -298,10 +298,10 @@ function seed(){
       {id:id(),title:'Streaming',cat:'sub',due:iso(t+3*D),repeat:'monthly',amount:15.99}
     ],
     dinners:[
-      {id:id(),date:iso(t),meal:'Spaghetti bolognese',startBy:'18:00',note:'Mince is in the freezer, take it out in the morning',ingredients:'Mince, Onion, Garlic, Tinned tomatoes, Spaghetti'},
-      {id:id(),date:iso(addDays(t,1)),meal:'Chicken curry',startBy:'18:15',note:'Rice cooker takes 25 min',ingredients:'Chicken breasts, Curry paste, Coconut milk, Rice, Peppers'},
-      {id:id(),date:iso(addDays(t,2)),meal:'Salmon traybake',startBy:'18:30',note:'',ingredients:'Salmon fillets, Baby potatoes, Broccoli, Lemon'},
-      {id:id(),date:iso(addDays(t,4)),meal:'Leftovers',startBy:'',note:'',ingredients:''}
+      {id:id(),date:iso(t),meal:'Spaghetti bolognese',note:'Mince is in the freezer, take it out in the morning',ingredients:'Mince, Onion, Garlic, Tinned tomatoes, Spaghetti'},
+      {id:id(),date:iso(addDays(t,1)),meal:'Chicken curry',note:'Rice cooker takes 25 min',ingredients:'Chicken breasts, Curry paste, Coconut milk, Rice, Peppers'},
+      {id:id(),date:iso(addDays(t,2)),meal:'Salmon traybake',note:'',ingredients:'Salmon fillets, Baby potatoes, Broccoli, Lemon'},
+      {id:id(),date:iso(addDays(t,4)),meal:'Leftovers',note:'',ingredients:''}
     ],
     bins:[
       {id:id(),name:'General',color:'#4B5257',anchor:iso(tue),everyWeeks:2},
@@ -408,14 +408,10 @@ function babyTiles(compact){
 function tonightPanel(){
   const d=dinnerFor(iso(now()));
   if(!d)return `<div class="panel span-4"><div class="ptitle"><h2>Tonight's dinner</h2></div><div class="empty">Nothing planned yet.</div><button class="small-btn" style="align-self:flex-start" data-act="planTonight">Plan tonight's dinner</button></div>`;
-  let pill='';
-  if(d.startBy){const [h,m]=d.startBy.split(':').map(Number);const st=new Date();st.setHours(h,m,0,0);const diff=st.getTime()-now();
-    pill=diff<=-90*M?`<span class="pill neutral">Planned for ${esc(d.startBy)}</span>`:diff<=0?`<span class="pill bad">Start now, was due ${esc(d.startBy)}</span>`:diff<=60*M?`<span class="pill warn">Start by ${esc(d.startBy)}, in ${dur(diff)}</span>`:`<span class="pill neutral">Start by ${esc(d.startBy)}</span>`;}
   const tomorrow=dinnerFor(iso(addDays(now(),1)));
   return `<div class="panel span-4">
     <div class="ptitle"><h2>Tonight's dinner</h2></div>
     <div class="tonight">${esc(d.meal)}</div>
-    ${pill?`<div>${pill}</div>`:''}
     ${d.note?`<div>${esc(d.note)}</div>`:''}
     ${tomorrow?`<div class="hint">Tomorrow: ${esc(tomorrow.meal)}${tomorrow.note?'. '+esc(tomorrow.note):''}</div>`:''}
   </div>`;
@@ -624,7 +620,6 @@ function renderDinners(){
     return `<button class="day ${d?'':'empty'} ${day===todayIso?'is-today':''} ${editDay===day?'is-editing':''}" data-act="dinnerEdit" data-day="${day}" aria-label="${d?'Edit':'Plan'} dinner for ${name}">
       <span class="dname">${name}</span>
       <span class="meal">${d?esc(d.meal):'+ Plan dinner'}</span>
-      ${d&&d.startBy?`<span class="pill neutral" style="align-self:flex-start">Start by ${esc(d.startBy)}</span>`:''}
       ${d&&d.note?`<span class="dnote">${esc(d.note)}</span>`:''}
     </button>`}).join('');
   let editor='';
@@ -634,7 +629,6 @@ function renderDinners(){
       <input type="hidden" name="date" value="${editDay}">
       <div class="inline" style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="dMeal" name="meal" list="pastMeals" required placeholder="What's for dinner" value="${esc(d.meal||'')}" style="flex:2 1 200px;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
-        <input id="dStart" name="startBy" type="time" value="${esc(d.startBy||'')}" aria-label="Start cooking by" style="flex:0 1 130px;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
       </div>
       <datalist id="pastMeals">${pastMeals().map(m=>`<option value="${esc(m.meal)}">`).join('')}</datalist>
       <input id="dNote" name="note" placeholder="Prep note, e.g. take chicken out of the freezer" value="${esc(d.note||'')}" style="min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px">
@@ -819,8 +813,8 @@ const FORMS={
     const meal=f.meal.trim(); let ing=f.ingredients.trim();
     if(!ing){const prev=pastMeals().find(m=>m.meal.toLowerCase()===meal.toLowerCase()&&m.date!==f.date);if(prev)ing=prev.ingredients||''}
     const ex=dinnerFor(f.date);
-    if(ex)DB.update('dinners',ex.id,{meal,startBy:f.startBy,note:f.note.trim(),ingredients:ing});
-    else DB.add('dinners',{date:f.date,meal,startBy:f.startBy,note:f.note.trim(),ingredients:ing});
+    if(ex)DB.update('dinners',ex.id,{meal,note:f.note.trim(),ingredients:ing});
+    else DB.add('dinners',{date:f.date,meal,note:f.note.trim(),ingredients:ing});
     editDay=null; toast('Dinner saved');
   },
   rem(f){DB.add('reminders',{title:f.title.trim(),cat:f.cat,due:f.due,repeatDays:+f.repeatDays||0});toast('Reminder added')},

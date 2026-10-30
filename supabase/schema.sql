@@ -88,7 +88,6 @@ create table dinners (
   household_id uuid not null references households(id) on delete cascade,
   on_date date not null,
   meal text not null,
-  start_by time,
   note text,
   ingredients text,
   unique (household_id, on_date)
