@@ -135,11 +135,10 @@ li.done .t{text-decoration:line-through;color:var(--muted)}
 .dot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--c)}
 .small-btn{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 12px;font-weight:700;min-height:40px;flex:none}
 
-.tick{position:relative;flex:none;margin:4px 6px 0 0}
+.tick{flex:none;margin-left:8px}
 .tick .check{width:34px;height:34px}
-.tick .xb{position:absolute;top:-9px;right:-11px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:.85rem;line-height:1;display:grid;place-items:center;padding:0}
-.tick .xb::before{content:"";position:absolute;inset:-6px}
-.tick .xb:hover{color:var(--bad);border-color:var(--bad)}
+.del-left{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:var(--bad);color:var(--accent-ink);font-size:1.1rem;font-weight:700;display:grid;place-items:center;margin-right:4px}
+.small-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tap{cursor:pointer;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;width:100%}
 .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
@@ -498,7 +497,7 @@ const REMCAT={dog:{n:'Dog',c:'var(--nappy)'},home:{n:'Home',c:'var(--feed)'},car
 const BILLCAT={dd:'Direct debit',renewal:'Renewal',annual:'Annual bill',sub:'Subscription'};
 
 /* ---------- UI state ---------- */
-let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null, editPreg=false;
+let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null, editPreg=false, editList=null;
 let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, undo=null, toastTimer=null;
 
 /* ---------- Renderers ---------- */
@@ -832,7 +831,7 @@ function renderBaby(){
       </details>
     </div>
     <div class="panel span-6" data-fold="b-qs" data-sum="${qOpen?qOpen+' to ask':'None'}">
-      <div class="ptitle"><h2>Questions for the nurse or GP</h2></div>
+      <div class="ptitle"><h2>Questions for the nurse or GP</h2>${editBtn('questions')}</div>
       <ul class="list">${qs}</ul>
       <form class="inline" data-form="list" data-col="questions"><input id="qText" name="text" required placeholder="Add a question"><button>Add</button></form>
     </div>
@@ -877,10 +876,13 @@ function listItems(col,withWho){
 }
 
 function tickRow(col,i,sub){
+  const editing=editList===col;
   return `<li class="${i.done?'done':''}">
+    ${editing?`<button class="del-left" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="${col}" data-id="${i.id}">−</button>`:''}
     <button class="li-main tap" data-act="toggle" data-col="${col}" data-id="${i.id}" aria-label="${i.done?'Untick':'Tick'} ${esc(i.text)}"><div class="t">${esc(i.text)}</div>${sub?`<div class="s">${sub}</div>`:''}</button>
-    <span class="tick"><button class="check" role="checkbox" aria-checked="${i.done}" aria-label="${i.done?'Untick':'Tick'} ${esc(i.text)}" data-act="toggle" data-col="${col}" data-id="${i.id}">${i.done?'✓':''}</button><button class="xb" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="${col}" data-id="${i.id}">×</button></span></li>`;
+    <span class="tick"><button class="check" role="checkbox" aria-checked="${i.done}" aria-label="${i.done?'Untick':'Tick'} ${esc(i.text)}" data-act="toggle" data-col="${col}" data-id="${i.id}">${i.done?'✓':''}</button></span></li>`;
 }
+function editBtn(col){return S[col].length?`<button class="small-btn" aria-pressed="${editList===col}" data-act="editList" data-col="${col}">${editList===col?'Done':'Edit list'}</button>`:''}
 function shoppingList(){
   const row=i=>tickRow('shopping',i);
   const toBuy=S.shopping.filter(i=>!i.done), got=S.shopping.filter(i=>i.done);
@@ -989,13 +991,13 @@ function renderHome(){
     ${renderDinners()}
     ${deliveriesPanel()}
     <div class="panel span-6" data-fold="h-shop" data-open="1" data-sum="${shopN} item${shopN===1?'':'s'}">
-      <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} bought</button>`:''}</div>
+      <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} bought</button>`:''}${editBtn('shopping')}</div>
       <form class="inline" data-form="list" data-col="shopping"><input id="shopText" name="text" required placeholder="Add an item" autocomplete="off"><button>Add</button></form>
       <p class="hint" style="margin:0">Tick items off as you buy them.</p>
       ${shoppingList()}
     </div>
     <div class="panel span-6" data-fold="h-todo" data-open="1" data-sum="${todoN} to do">
-      <div class="ptitle"><h2>To do</h2></div>
+      <div class="ptitle"><h2>To do</h2>${editBtn('todos')}</div>
       <form class="inline" data-form="list" data-col="todos"><input id="todoText" name="text" required placeholder="Add a job"><select id="todoWho" name="who" aria-label="Who"><option value="">Either</option>${names.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('')}</select><button>Add</button></form>
       <ul class="list">${listItems('todos',true)}</ul>
     </div>
@@ -1133,6 +1135,7 @@ const ACT={
   planTonight(){editDay=iso(now());dinnerWeek=0;location.hash='home'},
   pregEdit(){editPreg=true},
   pregCancel(){editPreg=false},
+  editList(d){editList=editList===d.col?null:d.col},
   noteColor(d){noteColor=+d.c},
   editAddr(){editAddr=true;afterRender=()=>document.getElementById('addrInput')?.focus()},
   contactEdit(d){editContact=d.id},
