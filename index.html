@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2A5D77">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Home Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap">
+<style>
+/* Layout: wall-tablet board. Sticky header (clock + tabs), then a dense two-column grid of panels
+   that stacks to one column on phones. Big tap targets; night mode tints everything red for 3am feeds. */
+:root{
+  --bg:#EDF1F2; --surface:#FFFFFF; --surface-2:#E2E9EB; --ink:#16252A; --muted:#566A70; --line:#D2DCDF;
+  --accent:#2A5D77; --accent-ink:#FFFFFF; --gorse:#D9A02A;
+  --ok:#2E7A4D; --warn:#A86F12; --bad:#B03E2D;
+  --ok-bg:#E1F0E6; --warn-bg:#FAEFD8; --bad-bg:#F7E2DE;
+  --feed:#2A5D77; --nappy:#8A6630; --sleep:#5A4E8E; --med:#2E7A4D;
+  --font-display:'Bricolage Grotesque', ui-rounded, system-ui, sans-serif;
+  --font-body:'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1618; --surface:#162125; --surface-2:#1E2C30; --ink:#E2EBED; --muted:#92A6AB; --line:#29393E;
+  --accent:#7CB3D0; --accent-ink:#0E1618; --gorse:#E6B74A;
+  --ok:#6BBF8E; --warn:#E1A84B; --bad:#E47967;
+  --ok-bg:#16301F; --warn-bg:#32280E; --bad-bg:#391C17;
+  --feed:#7CB3D0; --nappy:#C9A46A; --sleep:#A99BE0; --med:#6BBF8E; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1618; --surface:#162125; --surface-2:#1E2C30; --ink:#E2EBED; --muted:#92A6AB; --line:#29393E;
+  --accent:#7CB3D0; --accent-ink:#0E1618; --gorse:#E6B74A;
+  --ok:#6BBF8E; --warn:#E1A84B; --bad:#E47967;
+  --ok-bg:#16301F; --warn-bg:#32280E; --bad-bg:#391C17;
+  --feed:#7CB3D0; --nappy:#C9A46A; --sleep:#A99BE0; --med:#6BBF8E; color-scheme:dark;
+}
+/* Night mode: red-only, dim. Declared last so it wins over both themes. */
+:root[data-night]{
+  --bg:#080303; --surface:#120707; --surface-2:#1A0B0A; --ink:#D8664C; --muted:#8C4334; --line:#2A1310;
+  --accent:#C0442E; --accent-ink:#080303; --gorse:#C0442E;
+  --ok:#D8664C; --warn:#D8664C; --bad:#FF7A5C;
+  --ok-bg:#1F0D0B; --warn-bg:#1F0D0B; --bad-bg:#2C0F0B;
+  --feed:#D8664C; --nappy:#B5513C; --sleep:#9E4634; --med:#D8664C; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 32px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gorse);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15}
+.tnum{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.wrap{max-width:1280px;margin:0 auto}
+
+/* Header */
+header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);padding-block:14px 10px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.hrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.clock{font-family:var(--font-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);letter-spacing:-.02em;line-height:1}
+.date{font-size:1rem;color:var(--muted)}
+.hspacer{flex:1}
+nav.tabs{display:flex;gap:6px;background:var(--surface-2);padding:5px;border-radius:999px;overflow-x:auto;max-width:100%}
+nav.tabs a{padding:10px 18px;border-radius:999px;text-decoration:none;color:var(--muted);font-weight:700;white-space:nowrap;min-height:44px;display:flex;align-items:center}
+nav.tabs a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:10px 14px;min-height:44px;font-weight:700}
+.iconbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+/* Banner */
+.banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:.95rem}
+.banner b{color:var(--warn)}
+.banner .grow{flex:1;min-width:200px}
+
+/* Grid + panels */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.span-12{grid-column:span 12}.span-8{grid-column:span 8}.span-6{grid-column:span 6}.span-4{grid-column:span 4}
+@media (max-width:900px){.span-8,.span-6,.span-4{grid-column:span 12}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.ptitle{display:flex;align-items:baseline;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.ptitle h2{font-size:1.2rem;font-weight:700}
+.eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+
+/* Status tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:4px;border-top:5px solid var(--c, var(--accent));min-width:0}
+.tile .big{font-family:var(--font-display);font-size:clamp(1.5rem,3.2vw,2.2rem);font-weight:700;line-height:1.05}
+.tile .sub{color:var(--muted);font-size:.95rem}
+.tile.live{background:color-mix(in srgb, var(--c) 12%, var(--surface))}
+.pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:6px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+
+/* Big action buttons */
+.actions{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.act{min-height:72px;border-radius:12px;border:2px solid var(--c, var(--accent));background:var(--surface);color:var(--ink);font-weight:700;font-size:1.05rem;padding:8px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.15}
+.act small{font-weight:400;color:var(--muted);font-size:.8rem}
+.act.solid{background:var(--c, var(--accent));color:var(--accent-ink)}
+.act.solid small{color:inherit;opacity:.85}
+.act:active{transform:scale(.98)}
+.group{display:flex;flex-direction:column;gap:8px}
+.glabel{font-weight:700;font-size:.9rem;color:var(--c, var(--muted))}
+
+/* Lists */
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.list li{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);min-height:52px}
+ul.list li:last-child{border-bottom:0}
+.li-main{flex:1;min-width:0}
+.li-main .t{font-weight:700;overflow-wrap:anywhere}
+.li-main .s{color:var(--muted);font-size:.9rem}
+.check{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);background:var(--surface);flex:none;display:grid;place-items:center;font-weight:700;color:var(--accent-ink)}
+.check[aria-checked="true"]{background:var(--ok);border-color:var(--ok)}
+li.done .t{text-decoration:line-through;color:var(--muted)}
+.x{border:0;background:transparent;color:var(--muted);font-size:1.3rem;width:40px;height:40px;border-radius:8px;flex:none}
+.x:hover{background:var(--surface-2)}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--c)}
+.small-btn{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 12px;font-weight:700;min-height:40px;flex:none}
+
+.pill{display:inline-block;font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.neutral{background:var(--surface-2);color:var(--muted)}
+
+/* Forms */
+form.inline{display:flex;gap:8px;flex-wrap:wrap}
+form.inline input,form.inline select{flex:1 1 140px;min-width:0;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 12px}
+form.inline input.narrow{flex:0 1 110px}
+form.inline button{min-height:46px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:8px 16px}
+details.add summary{cursor:pointer;color:var(--accent);font-weight:700;padding:6px 0;list-style:none}
+details.add summary::-webkit-details-marker{display:none}
+details.add[open] summary{margin-bottom:8px}
+
+/* Stats row */
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px}
+.stat b{font-family:var(--font-display);font-size:1.5rem;display:block;line-height:1.1}
+.stat span{color:var(--muted);font-size:.85rem}
+
+/* Bins */
+.bins{display:flex;gap:10px;flex-wrap:wrap}
+.bin{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--surface-2);flex:1 1 160px;min-width:0}
+.bin .can{width:22px;height:28px;border-radius:4px 4px 6px 6px;background:var(--c);flex:none;position:relative}
+.bin .can::before{content:"";position:absolute;left:-3px;right:-3px;top:-5px;height:5px;border-radius:3px;background:var(--c)}
+.bin.soon{outline:2px solid var(--gorse)}
+
+/* Money */
+.amount{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.blur{filter:blur(6px);user-select:none}
+
+/* Chart */
+.chart-box{overflow-x:auto}
+.chart-box svg{display:block;width:100%;min-width:320px;height:auto}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;display:flex;gap:14px;align-items:center;z-index:20;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast button{background:transparent;border:0;color:var(--gorse);font-weight:700}
+.empty{color:var(--muted);font-size:.95rem;padding:6px 0}
+.hint{font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+
+<header>
+  <div class="wrap hrow">
+    <div>
+      <div class="clock tnum" id="clock">--:--</div>
+      <div class="date" id="date"></div>
+    </div>
+    <div class="hspacer"></div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#today" data-tab="today">Today</a>
+      <a href="#baby" data-tab="baby">Baby</a>
+      <a href="#home" data-tab="home">Household</a>
+      <a href="#money" data-tab="money">Money</a>
+    </nav>
+    <button class="iconbtn" id="nightBtn" aria-pressed="false" data-act="night">Night mode</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner"></div>
+  <section id="view-today" hidden></section>
+  <section id="view-baby" hidden></section>
+  <section id="view-home" hidden></section>
+  <section id="view-money" hidden></section>
+</main>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/* ---------- Data layer (local for now; swap for Supabase later) ---------- */
+const KEY='homeboard.v1';
+const M=60e3,H=3600e3,D=864e5;
+const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+const now=()=>Date.now();
+const pad=n=>String(n).padStart(2,'0');
+const iso=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const parseDay=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).getTime()};
+const startOfDay=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function nextWeekday(dow){const t=startOfDay(now());const d=new Date(t);const diff=(dow-d.getDay()+7)%7;return t+diff*D}
+
+function seed(){
+  const t=now(), id=uid;
+  const tue=nextWeekday(2);
+  return {
+    example:true,
+    settings:{names:['Enda','Sabrina'],nightShift:0},
+    feeds:[
+      {id:id(),start:t-2.3*H,end:t-2.3*H+18*M,kind:'left'},
+      {id:id(),start:t-5.1*H,end:t-5.1*H+14*M,kind:'right'},
+      {id:id(),start:t-8.2*H,end:t-8.2*H,kind:'bottle',ml:90},
+    ],
+    nappies:[{id:id(),at:t-1.6*H,kind:'wet'},{id:id(),at:t-4.8*H,kind:'both'},{id:id(),at:t-7.4*H,kind:'wet'}],
+    sleeps:[{id:id(),start:t-1.5*H,end:t-0.6*H},{id:id(),start:t-4.6*H,end:t-3.1*H}],
+    meds:[{id:'m1',name:'Vitamin D drops',intervalH:24,note:'Dose from the label or nurse'}],
+    doses:[{id:id(),medId:'m1',at:t-20*H}],
+    temps:[{id:id(),at:t-6*H,c:36.8}],
+    growth:[
+      {id:id(),date:iso(t-28*D),weightKg:3.45,lengthCm:50,headCm:34.5},
+      {id:id(),date:iso(t-23*D),weightKg:3.36},
+      {id:id(),date:iso(t-14*D),weightKg:3.62,lengthCm:51.5},
+      {id:id(),date:iso(t-4*D),weightKg:3.94,lengthCm:53,headCm:36}
+    ],
+    appts:[
+      {id:id(),date:iso(t+2*D),time:'10:30',kind:'phn',title:'Public health nurse home visit',done:false},
+      {id:id(),date:iso(t+11*D),time:'09:15',kind:'gp',title:'Baby check with GP',done:false},
+      {id:id(),date:iso(t+38*D),time:'',kind:'vaccine',title:'First vaccines (confirm date with GP)',done:false}
+    ],
+    questions:[{id:id(),text:'Dry skin patches on face, anything to use?',done:false},{id:id(),text:'How long between night feeds is OK?',done:false}],
+    shopping:[{id:id(),text:'Nappies (size 1)',done:false},{id:id(),text:'Milk',done:false},{id:id(),text:'Dog food',done:true},{id:id(),text:'Bread',done:false}],
+    todos:[{id:id(),text:'Register the birth',who:0,done:false},{id:id(),text:'Book car seat check',who:1,done:false},{id:id(),text:'Put up hallway shelf',who:0,done:false}],
+    reminders:[
+      {id:id(),title:'Flea treatment',cat:'dog',due:iso(t+2*D),repeatDays:30},
+      {id:id(),title:'Worming tablet',cat:'dog',due:iso(t+9*D),repeatDays:90},
+      {id:id(),title:'Test smoke alarms',cat:'home',due:iso(t-1*D),repeatDays:30},
+      {id:id(),title:'Heat pump filter clean',cat:'home',due:iso(t+20*D),repeatDays:90},
+      {id:id(),title:'NCT',cat:'car',due:iso(t+130*D),repeatDays:0}
+    ],
+    bills:[
+      {id:id(),title:'Electricity',cat:'dd',due:iso(t+6*D),repeat:'monthly',amount:165},
+      {id:id(),title:'Broadband',cat:'dd',due:iso(t+12*D),repeat:'monthly',amount:55},
+      {id:id(),title:'Mortgage',cat:'dd',due:iso(t+1*D),repeat:'monthly',amount:1250},
+      {id:id(),title:'Car insurance',cat:'renewal',due:iso(t+24*D),repeat:'yearly',amount:640},
+      {id:id(),title:'Home insurance',cat:'renewal',due:iso(t+95*D),repeat:'yearly',amount:410},
+      {id:id(),title:'TV licence',cat:'annual',due:iso(t+48*D),repeat:'yearly',amount:160},
+      {id:id(),title:'Streaming',cat:'sub',due:iso(t+3*D),repeat:'monthly',amount:15.99}
+    ],
+    bins:[
+      {id:id(),name:'General',color:'#4B5257',anchor:iso(tue),everyWeeks:2},
+      {id:id(),name:'Recycling',color:'#2C6CB0',anchor:iso(tue+7*D),everyWeeks:2},
+      {id:id(),name:'Compost',color:'#7A5230',anchor:iso(tue),everyWeeks:1}
+    ]
+  };
+}
+function emptyState(old){
+  return {...seed(),example:false,settings:old.settings,bins:old.bins,meds:[],
+    feeds:[],nappies:[],sleeps:[],doses:[],temps:[],growth:[],appts:[],questions:[],shopping:[],todos:[],reminders:[],bills:[]};
+}
+
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S||!S.settings)S=seed();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const DB={
+  add(col,obj){obj.id=obj.id||uid();S[col].push(obj);save();return obj},
+  update(col,id,patch){const o=S[col].find(x=>x.id===id);if(o)Object.assign(o,patch);save();return o},
+  remove(col,id){const i=S[col].findIndex(x=>x.id===id);if(i<0)return null;const [o]=S[col].splice(i,1);save();return o}
+};
+
+/* ---------- Formatting ---------- */
+const hm=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
+function dur(ms){ms=Math.max(0,ms);const h=Math.floor(ms/H),m=Math.floor((ms%H)/M);return h?`${h}h ${m}m`:`${m}m`}
+const ago=t=>dur(now()-t)+' ago';
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dayLabel(dayT){
+  const diff=Math.round((startOfDay(dayT)-startOfDay(now()))/D);
+  if(diff===0)return 'Today'; if(diff===1)return 'Tomorrow'; if(diff===-1)return 'Yesterday';
+  const d=new Date(dayT); const base=`${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`;
+  return diff>1&&diff<7?DOW[d.getDay()]+' '+d.getDate():base;
+}
+function dueStatus(dayT,soonDays=7){
+  const diff=Math.round((startOfDay(dayT)-startOfDay(now()))/D);
+  if(diff<0)return {cls:'bad',txt:`${-diff}d overdue`};
+  if(diff===0)return {cls:'warn',txt:'Today'};
+  if(diff<=soonDays)return {cls:'warn',txt:`In ${diff}d`};
+  return {cls:'neutral',txt:`In ${diff}d`};
+}
+const euro=n=>'€'+Number(n).toLocaleString('en-IE',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
+
+/* ---------- Derived ---------- */
+const activeFeed=()=>S.feeds.find(f=>!f.end);
+const activeSleep=()=>S.sleeps.find(s=>!s.end);
+const lastBy=(arr,k)=>arr.slice().sort((a,b)=>b[k]-a[k])[0];
+function lastDose(medId){return S.doses.filter(d=>d.medId===medId).sort((a,b)=>b.at-a.at)[0]}
+function medState(m){
+  const ld=lastDose(m.id); if(!ld)return {ok:true,txt:'No doses logged',next:null};
+  const next=ld.at+m.intervalH*H; return now()>=next?{ok:true,txt:'OK to give now',next,ld}:{ok:false,txt:'Next from '+hm(next)+(startOfDay(next)!==startOfDay(now())?' tomorrow':''),next,ld};
+}
+function nextBin(b){
+  const a=parseDay(b.anchor), step=b.everyWeeks*7*D, today=startOfDay(now());
+  if(a>=today)return a; const k=Math.ceil((today-a)/step); return a+k*step;
+}
+function rollMonthly(dayT,months){const d=new Date(dayT);const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+months);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return d.getTime()}
+function billNext(b){
+  let t=parseDay(b.due); const today=startOfDay(now());
+  if(b.repeat==='monthly')while(t<today)t=rollMonthly(t,1);
+  if(b.repeat==='yearly')while(t<today)t=rollMonthly(t,12);
+  return t;
+}
+function todayStats(){
+  const t0=startOfDay(now());
+  const feeds=S.feeds.filter(f=>f.start>=t0);
+  const ml=feeds.reduce((a,f)=>a+(f.ml||0),0);
+  const nap=S.nappies.filter(n=>n.at>=t0);
+  const wet=nap.filter(n=>n.kind!=='dirty').length, dirty=nap.filter(n=>n.kind!=='wet').length;
+  const sleep=S.sleeps.reduce((a,s)=>{const st=Math.max(s.start,t0),en=s.end||now();return en>st?a+(en-st):a},0);
+  return {feeds:feeds.length,ml,wet,dirty,sleep};
+}
+const FEEDNAME={left:'Left',right:'Right',bottle:'Bottle'};
+const NAPNAME={wet:'Wet',dirty:'Dirty',both:'Wet + dirty'};
+const APPTKIND={phn:{n:'Nurse visit',c:'var(--feed)'},gp:{n:'GP',c:'var(--sleep)'},vaccine:{n:'Vaccine',c:'var(--med)'},hospital:{n:'Hospital',c:'var(--nappy)'},other:{n:'Other',c:'var(--muted)'}};
+const REMCAT={dog:{n:'Dog',c:'var(--nappy)'},home:{n:'Home',c:'var(--feed)'},car:{n:'Car',c:'var(--sleep)'}};
+const BILLCAT={dd:'Direct debit',renewal:'Renewal',annual:'Annual bill',sub:'Subscription'};
+
+/* ---------- UI state ---------- */
+let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, undo=null, toastTimer=null;
+
+/* ---------- Renderers ---------- */
+function babyTiles(compact){
+  const af=activeFeed(), lf=lastBy(S.feeds.filter(f=>f.end),'start');
+  const as=activeSleep(), ls=lastBy(S.sleeps.filter(s=>s.end),'end');
+  const ln=lastBy(S.nappies,'at');
+  const med=S.meds[0]; const ms=med&&medState(med);
+  const feedTile=af
+    ?`<div class="tile live" style="--c:var(--feed)"><span class="eyebrow">Feeding now</span><div class="big tnum"><span class="pulse"></span>${dur(now()-af.start)}</div><div class="sub">${FEEDNAME[af.kind]} side, from ${hm(af.start)}</div></div>`
+    :`<div class="tile" style="--c:var(--feed)"><span class="eyebrow">Last feed</span><div class="big tnum">${lf?ago(lf.start):'—'}</div><div class="sub">${lf?(FEEDNAME[lf.kind]+(lf.ml?` · ${lf.ml} ml`:` · ${dur(lf.end-lf.start)}`)+' at '+hm(lf.start)):'Nothing logged yet'}</div></div>`;
+  const napTile=`<div class="tile" style="--c:var(--nappy)"><span class="eyebrow">Last nappy</span><div class="big tnum">${ln?ago(ln.at):'—'}</div><div class="sub">${ln?NAPNAME[ln.kind]+' at '+hm(ln.at):'Nothing logged yet'}</div></div>`;
+  const sleepTile=as
+    ?`<div class="tile live" style="--c:var(--sleep)"><span class="eyebrow">Asleep</span><div class="big tnum"><span class="pulse"></span>${dur(now()-as.start)}</div><div class="sub">Since ${hm(as.start)}</div></div>`
+    :`<div class="tile" style="--c:var(--sleep)"><span class="eyebrow">Awake</span><div class="big tnum">${ls?dur(now()-ls.end):'—'}</div><div class="sub">${ls?'Last sleep '+dur(ls.end-ls.start)+', woke '+hm(ls.end):'No sleeps logged'}</div></div>`;
+  const medTile=med
+    ?`<div class="tile" style="--c:var(--med)"><span class="eyebrow">${esc(med.name)}</span><div class="big">${ms.ok?'OK now':hm(ms.next)}</div><div class="sub">${ms.ld?'Last given '+ago(ms.ld.at):'No doses logged'}</div></div>`
+    :`<div class="tile" style="--c:var(--med)"><span class="eyebrow">Medicines</span><div class="big">—</div><div class="sub">None set up</div></div>`;
+  return `<div class="tiles">${feedTile}${napTile}${sleepTile}${medTile}</div>`;
+}
+
+function renderToday(){
+  const today=startOfDay(now());
+  const bins=S.bins.map(b=>({...b,next:nextBin(b)})).sort((a,b)=>a.next-b.next);
+  const firstBin=bins[0]?.next;
+  const binsHtml=bins.map(b=>{const soon=b.next-today<=D;return `<div class="bin ${soon?'soon':''}" style="--c:${esc(b.color)}"><span class="can"></span><div class="li-main"><div class="t">${esc(b.name)}</div><div class="s">${dayLabel(b.next)}</div></div></div>`}).join('');
+  const binNote=firstBin!=null&&firstBin-today<=D?`<span class="pill warn">${firstBin===today?'Bins out this morning':'Bins out tonight'}</span>`:'';
+
+  // Example calendar events (replaced by iCal feeds after setup)
+  const ev=[
+    {time:'09:30',title:'Gym class',who:'Sabrina',c:'var(--sleep)'},
+    {time:'11:00',title:'Team call',who:'Enda',c:'var(--feed)'},
+    {time:'19:00',title:'Dinner with friends',who:'Shared',c:'var(--gorse)'}
+  ];
+  const evHtml=ev.map(e=>`<li><span class="dot" style="--c:${e.c}"></span><div class="li-main"><div class="t">${esc(e.title)}</div><div class="s">${e.who}</div></div><span class="tnum muted">${e.time}</span></li>`).join('');
+
+  // Upcoming 7 days: appointments, reminders, bills (names only)
+  const up=[];
+  S.appts.filter(a=>!a.done).forEach(a=>up.push({t:parseDay(a.date),title:a.title,tag:APPTKIND[a.kind]?.n||'Baby',c:APPTKIND[a.kind]?.c}));
+  S.reminders.forEach(r=>up.push({t:parseDay(r.due),title:r.title,tag:REMCAT[r.cat].n,c:REMCAT[r.cat].c}));
+  S.bills.forEach(b=>up.push({t:billNext(b),title:b.title,tag:BILLCAT[b.cat],c:'var(--muted)'}));
+  const upHtml=up.filter(u=>u.t<=today+7*D).sort((a,b)=>a.t-b.t).slice(0,8).map(u=>{const st=dueStatus(u.t);return `<li><span class="dot" style="--c:${u.c}"></span><div class="li-main"><div class="t">${esc(u.title)}</div><div class="s">${u.tag}</div></div><span class="pill ${st.cls}">${u.t<today?st.txt:dayLabel(u.t)}</span></li>`}).join('')||'<li class="empty">Nothing in the next 7 days.</li>';
+
+  const st=todayStats(); const names=S.settings.names; const ns=S.settings.nightShift;
+  const shopLeft=S.shopping.filter(s=>!s.done).length;
+
+  return `<div class="grid">
+    <div class="span-12">${babyTiles()}</div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Today's plans</h2><span class="pill neutral">Example events</span></div>
+      <ul class="list">${evHtml}</ul>
+      <div class="hint">Your and Sabrina's calendars appear here once their links are added.</div>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Coming up this week</h2></div>
+      <ul class="list">${upHtml}</ul>
+    </div>
+    <div class="panel span-4">
+      <div class="ptitle"><h2>Bins</h2>${binNote}</div>
+      <div class="bins">${binsHtml}</div>
+    </div>
+    <div class="panel span-4">
+      <div class="ptitle"><h2>Night feeds tonight</h2></div>
+      <div class="actions">${names.map((n,i)=>`<button class="act ${i===ns?'solid':''}" style="--c:var(--sleep)" data-act="shift" data-i="${i}">${esc(n)}<small>${i===ns?'On tonight':'Tap to swap'}</small></button>`).join('')}</div>
+    </div>
+    <div class="panel span-4">
+      <div class="ptitle"><h2>Baby today</h2></div>
+      <div class="stats">
+        <div class="stat"><b class="tnum">${st.feeds}</b><span>feeds</span></div>
+        <div class="stat"><b class="tnum">${st.wet}/${st.dirty}</b><span>wet / dirty</span></div>
+        <div class="stat"><b class="tnum">${dur(st.sleep)}</b><span>sleep</span></div>
+      </div>
+      <a href="#household" data-goto="home" class="hint">${shopLeft} item${shopLeft===1?'':'s'} on the shopping list</a>
+    </div>
+  </div>`;
+}
+
+function renderBaby(){
+  const af=activeFeed(), as=activeSleep();
+  const feedBtns=af
+    ?`<button class="act solid" style="--c:var(--feed)" data-act="feedStop">Stop feed<small>${FEEDNAME[af.kind]} · ${dur(now()-af.start)}</small></button>
+      ${af.kind!=='bottle'?`<button class="act" style="--c:var(--feed)" data-act="feedSwitch">Switch side<small>to ${af.kind==='left'?'right':'left'}</small></button>`:''}`
+    :`<button class="act" style="--c:var(--feed)" data-act="feedStart" data-kind="left">Left<small>Start timer</small></button>
+      <button class="act" style="--c:var(--feed)" data-act="feedStart" data-kind="right">Right<small>Start timer</small></button>
+      <button class="act" style="--c:var(--feed)" data-act="bottleQuick" data-ml="${lastBottleMl()}">Bottle<small>${lastBottleMl()} ml</small></button>`;
+  const sleepBtn=as
+    ?`<button class="act solid" style="--c:var(--sleep)" data-act="sleepStop">Woke up<small>Asleep ${dur(now()-as.start)}</small></button>`
+    :`<button class="act" style="--c:var(--sleep)" data-act="sleepStart">Fell asleep<small>Start sleep</small></button>`;
+
+  const meds=S.meds.map(m=>{const s=medState(m);const armed=earlyArmed===m.id;return `<li>
+      <span class="dot" style="--c:var(--med)"></span>
+      <div class="li-main"><div class="t">${esc(m.name)}</div><div class="s">Every ${m.intervalH}h · ${s.ld?'last '+hm(s.ld.at)+', ':''}${esc(m.note||'')}</div></div>
+      <span class="pill ${s.ok?'ok':'warn'}">${s.txt}</span>
+      <button class="small-btn" data-act="dose" data-id="${m.id}" ${armed?'style="background:var(--bad-bg);color:var(--bad);border-color:var(--bad)"':''}>${armed?'Too early. Tap again':'Log dose'}</button>
+      <button class="x" aria-label="Remove ${esc(m.name)}" data-act="del" data-col="meds" data-id="${m.id}">×</button></li>`}).join('')||'<li class="empty">No medicines set up.</li>';
+
+  // Timeline (today + since midnight yesterday if early)
+  const t0=startOfDay(now())-(new Date().getHours()<6?D:0);
+  const items=[];
+  S.feeds.filter(f=>f.start>=t0).forEach(f=>items.push({t:f.start,col:'feeds',id:f.id,c:'var(--feed)',txt:`Feed · ${FEEDNAME[f.kind]}`,sub:f.ml?f.ml+' ml':(f.end?dur(f.end-f.start):'In progress')}));
+  S.nappies.filter(n=>n.at>=t0).forEach(n=>items.push({t:n.at,col:'nappies',id:n.id,c:'var(--nappy)',txt:'Nappy · '+NAPNAME[n.kind],sub:''}));
+  S.sleeps.filter(s=>s.start>=t0).forEach(s=>items.push({t:s.start,col:'sleeps',id:s.id,c:'var(--sleep)',txt:'Sleep',sub:s.end?dur(s.end-s.start)+', woke '+hm(s.end):'In progress'}));
+  S.doses.filter(d=>d.at>=t0).forEach(d=>{const m=S.meds.find(x=>x.id===d.medId);items.push({t:d.at,col:'doses',id:d.id,c:'var(--med)',txt:'Medicine · '+(m?m.name:'Removed'),sub:''})});
+  S.temps.filter(x=>x.at>=t0).forEach(x=>items.push({t:x.at,col:'temps',id:x.id,c:x.c>=38?'var(--bad)':'var(--med)',txt:`Temperature · ${x.c.toFixed(1)}°C`,sub:x.c>=38?'High':''}));
+  const tl=items.sort((a,b)=>b.t-a.t).map(i=>`<li><span class="tnum muted" style="width:3.2em">${hm(i.t)}</span><span class="dot" style="--c:${i.c}"></span><div class="li-main"><div class="t">${esc(i.txt)}</div>${i.sub?`<div class="s">${esc(i.sub)}</div>`:''}</div><button class="x" aria-label="Delete entry" data-act="del" data-col="${i.col}" data-id="${i.id}">×</button></li>`).join('')||'<li class="empty">Nothing logged today yet.</li>';
+
+  const st=todayStats();
+  const appts=S.appts.slice().sort((a,b)=>(a.done-b.done)||parseDay(a.date)-parseDay(b.date)).map(a=>{const k=APPTKIND[a.kind]||APPTKIND.other;const ds=dueStatus(parseDay(a.date),3);return `<li class="${a.done?'done':''}">
+    <button class="check" role="checkbox" aria-checked="${a.done}" aria-label="Mark done" data-act="toggle" data-col="appts" data-id="${a.id}">${a.done?'✓':''}</button>
+    <div class="li-main"><div class="t">${esc(a.title)}</div><div class="s">${k.n} · ${dayLabel(parseDay(a.date))}${a.time?' at '+esc(a.time):''}</div></div>
+    ${a.done?'':`<span class="pill ${ds.cls}">${ds.txt}</span>`}
+    <button class="x" aria-label="Delete" data-act="del" data-col="appts" data-id="${a.id}">×</button></li>`}).join('')||'<li class="empty">No appointments yet.</li>';
+
+  const qs=listItems('questions');
+
+  return `<div class="grid">
+    <div class="span-12">${babyTiles()}</div>
+    <div class="panel span-8">
+      <div class="ptitle"><h2>Log it</h2><span class="hint">One tap. Fix mistakes in the timeline.</span></div>
+      <div class="group" style="--c:var(--feed)"><span class="glabel">Feed</span><div class="actions">${feedBtns}</div>
+        <details class="add"><summary>Bottle with a different amount</summary>
+        <form class="inline" data-form="bottle"><input class="narrow" id="bottleMl" name="ml" type="number" inputmode="numeric" min="5" max="400" step="5" value="${lastBottleMl()}" aria-label="Millilitres"><button>Log bottle (ml)</button></form></details>
+      </div>
+      <div class="group" style="--c:var(--nappy)"><span class="glabel">Nappy</span><div class="actions">
+        <button class="act" style="--c:var(--nappy)" data-act="nappy" data-kind="wet">Wet</button>
+        <button class="act" style="--c:var(--nappy)" data-act="nappy" data-kind="dirty">Dirty</button>
+        <button class="act" style="--c:var(--nappy)" data-act="nappy" data-kind="both">Both</button></div></div>
+      <div class="group" style="--c:var(--sleep)"><span class="glabel">Sleep</span><div class="actions">${sleepBtn}</div></div>
+    </div>
+    <div class="panel span-4">
+      <div class="ptitle"><h2>Since midnight</h2></div>
+      <div class="stats">
+        <div class="stat"><b class="tnum">${st.feeds}</b><span>feeds</span></div>
+        <div class="stat"><b class="tnum">${st.ml}</b><span>ml by bottle</span></div>
+        <div class="stat"><b class="tnum">${st.wet}</b><span>wet</span></div>
+        <div class="stat"><b class="tnum">${st.dirty}</b><span>dirty</span></div>
+        <div class="stat"><b class="tnum">${dur(st.sleep)}</b><span>asleep</span></div>
+      </div>
+      <ul class="list" style="max-height:340px;overflow-y:auto">${tl}</ul>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Medicines and temperature</h2></div>
+      <ul class="list">${meds}</ul>
+      <details class="add"><summary>+ Add a medicine</summary>
+        <form class="inline" data-form="med"><input id="medName" name="name" required placeholder="Name, e.g. paracetamol"><input class="narrow" id="medInt" name="intervalH" type="number" min="1" max="72" required placeholder="Every (h)"><input id="medNote" name="note" placeholder="Dose, from label or GP"><button>Add</button></form>
+        <p class="hint">Use the gap between doses from the label or your GP. The board warns you if a dose is logged too early.</p>
+      </details>
+      <form class="inline" data-form="temp"><input class="narrow" id="tempC" name="c" type="number" step="0.1" min="34" max="42" required placeholder="°C" aria-label="Temperature in °C"><button>Log temperature</button></form>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Growth</h2><span class="hint">Your home copy. The nurse's book is the official record.</span></div>
+      ${growthChart()}
+      ${growthTable()}
+      <details class="add"><summary>+ Add a measurement</summary>
+        <form class="inline" data-form="growth"><input id="gDate" name="date" type="date" value="${iso(now())}" required><input class="narrow" id="gW" name="weightKg" type="number" step="0.01" placeholder="kg"><input class="narrow" id="gL" name="lengthCm" type="number" step="0.1" placeholder="Length cm"><input class="narrow" id="gH" name="headCm" type="number" step="0.1" placeholder="Head cm"><button>Add</button></form>
+      </details>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Appointments and vaccines</h2></div>
+      <ul class="list">${appts}</ul>
+      <details class="add"><summary>+ Add an appointment</summary>
+        <form class="inline" data-form="appt"><input id="aTitle" name="title" required placeholder="What is it"><select id="aKind" name="kind">${Object.entries(APPTKIND).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join('')}</select><input id="aDate" name="date" type="date" required><input class="narrow" id="aTime" name="time" type="time"><button>Add</button></form>
+      </details>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Questions for the nurse or GP</h2></div>
+      <ul class="list">${qs}</ul>
+      <form class="inline" data-form="list" data-col="questions"><input id="qText" name="text" required placeholder="Add a question"><button>Add</button></form>
+    </div>
+  </div>`;
+}
+function lastBottleMl(){const b=lastBy(S.feeds.filter(f=>f.kind==='bottle'),'start');return b?.ml||90}
+
+function growthChart(){
+  const pts=S.growth.filter(g=>g.weightKg).map(g=>({t:parseDay(g.date),w:+g.weightKg})).sort((a,b)=>a.t-b.t);
+  if(pts.length<2)return '<div class="empty">Add two weights to see the trend.</div>';
+  const W=600,Hh=200,L=44,R=16,T=14,B=30;
+  const t0=pts[0].t,t1=pts[pts.length-1].t||t0+D;
+  let lo=Math.min(...pts.map(p=>p.w)),hi=Math.max(...pts.map(p=>p.w));
+  lo=Math.floor((lo-0.1)*10)/10; hi=Math.ceil((hi+0.1)*10)/10;
+  const x=t=>L+(t-t0)/(t1-t0||1)*(W-L-R), y=w=>T+(hi-w)/(hi-lo)*(Hh-T-B);
+  const ticks=[lo,(lo+hi)/2,hi];
+  const line=pts.map((p,i)=>(i?'L':'M')+x(p.t).toFixed(1)+' '+y(p.w).toFixed(1)).join(' ');
+  const area=line+` L${x(pts.at(-1).t).toFixed(1)} ${Hh-B} L${x(pts[0].t).toFixed(1)} ${Hh-B} Z`;
+  const last=pts.at(-1), first=pts[0];
+  const fmtD=t=>{const d=new Date(t);return d.getDate()+' '+MON[d.getMonth()]};
+  return `<div class="chart-box"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Weight from ${first.w} kg to ${last.w} kg">
+    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${v.toFixed(1)}</text>`).join('')}
+    <path d="${area}" fill="var(--feed)" fill-opacity=".12"/>
+    <path d="${line}" fill="none" stroke="var(--feed)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${pts.map(p=>`<circle cx="${x(p.t)}" cy="${y(p.w)}" r="3.5" fill="var(--surface)" stroke="var(--feed)" stroke-width="2"/>`).join('')}
+    <circle cx="${x(last.t)}" cy="${y(last.w)}" r="6" fill="var(--feed)"/>
+    <text x="${Math.min(x(last.t),W-R)-10}" y="${y(last.w)-12}" text-anchor="end" font-size="13" font-weight="700" fill="var(--ink)">${last.w.toFixed(2)} kg</text>
+    <text x="${x(first.t)}" y="${Hh-8}" font-size="12" fill="var(--muted)">${fmtD(first.t)}</text>
+    <text x="${x(last.t)}" y="${Hh-8}" text-anchor="end" font-size="12" fill="var(--muted)">${fmtD(last.t)}</text>
+  </svg></div>`;
+}
+function growthTable(){
+  const g=S.growth.slice().sort((a,b)=>parseDay(b.date)-parseDay(a.date)).slice(0,3);
+  if(!g.length)return '';
+  return `<ul class="list">${g.map(r=>`<li><div class="li-main"><div class="t">${dayLabel(parseDay(r.date))}</div><div class="s tnum">${[r.weightKg&&r.weightKg+' kg',r.lengthCm&&r.lengthCm+' cm long',r.headCm&&'head '+r.headCm+' cm'].filter(Boolean).join(' · ')}</div></div><button class="x" aria-label="Delete measurement" data-act="del" data-col="growth" data-id="${r.id}">×</button></li>`).join('')}</ul>`;
+}
+
+function listItems(col,withWho){
+  const names=S.settings.names;
+  const arr=S[col].slice().sort((a,b)=>a.done-b.done);
+  return arr.map(i=>`<li class="${i.done?'done':''}">
+    <button class="check" role="checkbox" aria-checked="${i.done}" aria-label="Tick ${esc(i.text)}" data-act="toggle" data-col="${col}" data-id="${i.id}">${i.done?'✓':''}</button>
+    <div class="li-main"><div class="t">${esc(i.text)}</div>${withWho&&i.who!=null&&i.who!==''?`<div class="s">${esc(names[i.who]||'Both')}</div>`:''}</div>
+    <button class="x" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="${col}" data-id="${i.id}">×</button></li>`).join('')||'<li class="empty">Nothing here.</li>';
+}
+
+function renderHome(){
+  const today=startOfDay(now());
+  const rem=S.reminders.slice().sort((a,b)=>parseDay(a.due)-parseDay(b.due)).map(r=>{const c=REMCAT[r.cat];const st=dueStatus(parseDay(r.due),14);return `<li>
+    <span class="dot" style="--c:${c.c}"></span>
+    <div class="li-main"><div class="t">${esc(r.title)}</div><div class="s">${c.n} · ${dayLabel(parseDay(r.due))}${r.repeatDays?` · every ${r.repeatDays} days`:''}</div></div>
+    <span class="pill ${st.cls}">${st.txt}</span>
+    <button class="small-btn" data-act="remDone" data-id="${r.id}">Done</button></li>`}).join('')||'<li class="empty">No reminders.</li>';
+  const bins=S.bins.map(b=>({...b,next:nextBin(b)})).sort((a,b)=>a.next-b.next).map(b=>`<div class="bin ${b.next-today<=D?'soon':''}" style="--c:${esc(b.color)}"><span class="can"></span><div class="li-main"><div class="t">${esc(b.name)}</div><div class="s">${dayLabel(b.next)} · every ${b.everyWeeks===1?'week':b.everyWeeks+' weeks'}</div></div></div>`).join('');
+  const names=S.settings.names;
+  const ticked=S.shopping.filter(s=>s.done).length;
+  return `<div class="grid">
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} ticked</button>`:''}</div>
+      <form class="inline" data-form="list" data-col="shopping"><input id="shopText" name="text" required placeholder="Add an item" autocomplete="off"><button>Add</button></form>
+      <ul class="list">${listItems('shopping')}</ul>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>To do</h2></div>
+      <form class="inline" data-form="list" data-col="todos"><input id="todoText" name="text" required placeholder="Add a job"><select id="todoWho" name="who" aria-label="Who"><option value="">Either</option>${names.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('')}</select><button>Add</button></form>
+      <ul class="list">${listItems('todos',true)}</ul>
+    </div>
+    <div class="panel span-8">
+      <div class="ptitle"><h2>Reminders</h2><span class="hint">Dog, home and car. Done moves it to the next due date.</span></div>
+      <ul class="list">${rem}</ul>
+      <details class="add"><summary>+ Add a reminder</summary>
+        <form class="inline" data-form="rem"><input id="rTitle" name="title" required placeholder="e.g. Vet booster"><select id="rCat" name="cat"><option value="dog">Dog</option><option value="home">Home</option><option value="car">Car</option></select><input id="rDue" name="due" type="date" required><input class="narrow" id="rRep" name="repeatDays" type="number" min="0" placeholder="Repeat days"><button>Add</button></form>
+      </details>
+    </div>
+    <div class="panel span-4">
+      <div class="ptitle"><h2>Bin collections</h2></div>
+      <div class="bins" style="flex-direction:column">${bins}</div>
+      <p class="hint">Example schedule. Your collection days get set once, then the board works out every date.</p>
+    </div>
+  </div>`;
+}
+
+function renderMoney(){
+  const today=startOfDay(now());
+  const rows=S.bills.map(b=>({...b,next:billNext(b)})).sort((a,b)=>a.next-b.next);
+  const amt=n=>n==null||n===''?'':`<span class="amount ${moneyShown?'':'blur'}" aria-hidden="${!moneyShown}">${euro(n)}</span>`;
+  const monthEnd=new Date(); monthEnd.setMonth(monthEnd.getMonth()+1,0); monthEnd.setHours(23,59);
+  const ddTotal=S.bills.filter(b=>b.repeat==='monthly').reduce((a,b)=>a+(+b.amount||0),0);
+  const leftThisMonth=rows.filter(r=>r.next<=monthEnd.getTime()).reduce((a,b)=>a+(+b.amount||0),0);
+  const renewals=rows.filter(r=>r.cat==='renewal');
+  const li=r=>{const st=dueStatus(r.next,r.cat==='renewal'?30:5);const shop=r.cat==='renewal'&&r.next-today<=30*D;return `<li>
+    <div class="li-main"><div class="t">${esc(r.title)}</div><div class="s">${BILLCAT[r.cat]} · ${dayLabel(r.next)}${r.repeat!=='none'?' · '+r.repeat:''}</div></div>
+    ${shop?'<span class="pill warn">Shop around now</span>':`<span class="pill ${st.cls}">${st.txt}</span>`}
+    ${amt(r.amount)}
+    <button class="x" aria-label="Delete ${esc(r.title)}" data-act="del" data-col="bills" data-id="${r.id}">×</button></li>`};
+  return `<div class="grid">
+    <div class="panel span-12" style="flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px 28px">
+      <div class="stat"><b class="tnum ${moneyShown?'':'blur'}">${euro(ddTotal)}</b><span>monthly debits</span></div>
+      <div class="stat"><b class="tnum ${moneyShown?'':'blur'}">${euro(leftThisMonth)}</b><span>still to go out this month</span></div>
+      <div class="stat"><b class="tnum">${renewals.filter(r=>r.next-today<=30*D).length}</b><span>renewals in 30 days</span></div>
+      <div class="hspacer"></div>
+      <button class="iconbtn" aria-pressed="${moneyShown}" data-act="money">${moneyShown?'Hide amounts':'Show amounts'}</button>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Next 60 days</h2></div>
+      <ul class="list">${rows.filter(r=>r.next<=today+60*D).map(li).join('')||'<li class="empty">Nothing due.</li>'}</ul>
+    </div>
+    <div class="panel span-6">
+      <div class="ptitle"><h2>Renewals</h2><span class="hint">Flagged 30 days out so you can compare before it auto-renews.</span></div>
+      <ul class="list">${renewals.map(li).join('')||'<li class="empty">No renewals added.</li>'}</ul>
+      <div class="ptitle" style="margin-top:8px"><h2>Later</h2></div>
+      <ul class="list">${rows.filter(r=>r.next>today+60*D&&r.cat!=='renewal').map(li).join('')||'<li class="empty">Nothing further out.</li>'}</ul>
+    </div>
+    <div class="panel span-12">
+      <details class="add"><summary>+ Add a bill, debit or renewal</summary>
+        <form class="inline" data-form="bill"><input id="bTitle" name="title" required placeholder="e.g. Health insurance"><select id="bCat" name="cat">${Object.entries(BILLCAT).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><input id="bDue" name="due" type="date" required><select id="bRep" name="repeat"><option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="none">Once</option></select><input class="narrow" id="bAmt" name="amount" type="number" step="0.01" placeholder="€ (optional)"><button>Add</button></form>
+      </details>
+      <p class="hint">Names and dates only show on the Today screen. Amounts stay hidden until you tap Show amounts. No bank logins, ever.</p>
+    </div>
+  </div>`;
+}
+
+/* ---------- Shell ---------- */
+function renderBanner(){
+  const el=document.getElementById('banner');
+  el.innerHTML=S.example?`<div class="banner"><div class="grow"><b>Example data.</b> Everything here is made up so you can try the buttons. Entries save on this device only until the shared database is connected.</div><button class="small-btn" data-act="clearExample">${confirmClear?'Tap again to clear all':'Clear examples'}</button></div>`:'';
+}
+function render(){
+  renderBanner();
+  const views={today:renderToday,baby:renderBaby,home:renderHome,money:renderMoney};
+  for(const k in views){const v=document.getElementById('view-'+k);v.hidden=k!==tab;}
+  const v=document.getElementById('view-'+tab);
+  // Preserve open <details> and focused input across re-render
+  const open=[...v.querySelectorAll('details[open]')].map((d,i)=>i);
+  const focusId=document.activeElement?.id;
+  v.innerHTML=views[tab]();
+  v.querySelectorAll('details').forEach((d,i)=>{if(open.includes(i))d.open=true});
+  if(focusId){const f=document.getElementById(focusId);if(f&&v.contains(f))f.focus()}
+  document.querySelectorAll('nav.tabs a').forEach(a=>a.setAttribute('aria-current',a.dataset.tab===tab?'page':'false'));
+}
+function tick(){
+  const d=new Date();
+  document.getElementById('clock').textContent=pad(d.getHours())+':'+pad(d.getMinutes());
+  document.getElementById('date').textContent=d.toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'long'});
+}
+function toast(msg,withUndo){
+  const t=document.getElementById('toast');
+  t.innerHTML=`<span>${esc(msg)}</span>${withUndo?'<button data-act="undo">Undo</button>':''}`;
+  t.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{t.hidden=true;undo=null},5000);
+}
+
+/* ---------- Actions ---------- */
+const ACT={
+  night(){const on=!document.documentElement.hasAttribute('data-night');document.documentElement.toggleAttribute('data-night',on);document.getElementById('nightBtn').setAttribute('aria-pressed',on);try{localStorage.setItem(KEY+'.night',on?'1':'')}catch(e){}},
+  feedStart(d){const a=activeFeed();if(a)a.end=now();DB.add('feeds',{start:now(),kind:d.kind});toast(FEEDNAME[d.kind]+' feed started')},
+  feedStop(){const a=activeFeed();if(a){DB.update('feeds',a.id,{end:now()});toast('Feed logged: '+dur(a.end-a.start))}},
+  feedSwitch(){const a=activeFeed();if(!a)return;DB.update('feeds',a.id,{end:now()});const k=a.kind==='left'?'right':'left';DB.add('feeds',{start:now(),kind:k});toast('Switched to '+FEEDNAME[k])},
+  bottleQuick(d){const t=now();DB.add('feeds',{start:t,end:t,kind:'bottle',ml:+d.ml});toast(`Bottle logged: ${d.ml} ml`)},
+  nappy(d){DB.add('nappies',{at:now(),kind:d.kind});toast('Nappy logged: '+NAPNAME[d.kind])},
+  sleepStart(){DB.add('sleeps',{start:now()});toast('Sleep started')},
+  sleepStop(){const s=activeSleep();if(s){DB.update('sleeps',s.id,{end:now()});toast('Sleep logged: '+dur(s.end-s.start))}},
+  dose(d){const m=S.meds.find(x=>x.id===d.id);const st=medState(m);
+    if(!st.ok&&earlyArmed!==m.id){earlyArmed=m.id;setTimeout(()=>{if(earlyArmed===m.id){earlyArmed=null;render()}},6000);return}
+    earlyArmed=null;DB.add('doses',{medId:m.id,at:now()});toast(m.name+' dose logged')},
+  del(d){const o=DB.remove(d.col,d.id);if(o){undo={col:d.col,obj:o};toast('Deleted',true)}},
+  undo(){if(undo){S[undo.col].push(undo.obj);save();undo=null;document.getElementById('toast').hidden=true}},
+  toggle(d){const o=S[d.col].find(x=>x.id===d.id);if(o)DB.update(d.col,d.id,{done:!o.done})},
+  clearTicked(d){S[d.col]=S[d.col].filter(x=>!x.done);save();toast('Cleared')},
+  remDone(d){const r=S.reminders.find(x=>x.id===d.id);if(!r)return;
+    if(r.repeatDays>0){let t=Math.max(parseDay(r.due),startOfDay(now()));t+=r.repeatDays*D;DB.update('reminders',r.id,{due:iso(t)});toast(`${r.title}: next due ${dayLabel(t)}`)}
+    else{const o=DB.remove('reminders',r.id);undo={col:'reminders',obj:o};toast(r.title+' done',true)}},
+  shift(d){S.settings.nightShift=+d.i;save()},
+  money(){moneyShown=!moneyShown},
+  clearExample(){if(!confirmClear){confirmClear=true;setTimeout(()=>{confirmClear=false;renderBanner()},5000);return}confirmClear=false;S=emptyState(S);save();toast('Examples cleared')}
+};
+document.addEventListener('click',e=>{
+  requestWake();
+  const g=e.target.closest('[data-goto]'); if(g){e.preventDefault();location.hash=g.dataset.goto;return}
+  const b=e.target.closest('[data-act]'); if(!b)return;
+  const fn=ACT[b.dataset.act]; if(!fn)return; fn(b.dataset,b); render();
+});
+const FORMS={
+  bottle(f){const ml=+f.ml;if(ml>0){const t=now();DB.add('feeds',{start:t,end:t,kind:'bottle',ml});toast(`Bottle logged: ${ml} ml`)}},
+  med(f){DB.add('meds',{name:f.name.trim(),intervalH:+f.intervalH,note:f.note.trim()});toast('Medicine added')},
+  temp(f){const c=+f.c;DB.add('temps',{at:now(),c});toast(`Temperature logged: ${c.toFixed(1)}°C`+(c>=38?'. That is high, call your GP or GP out-of-hours if worried':''))},
+  growth(f){DB.add('growth',{date:f.date,weightKg:f.weightKg?+f.weightKg:null,lengthCm:f.lengthCm?+f.lengthCm:null,headCm:f.headCm?+f.headCm:null});toast('Measurement added')},
+  appt(f){DB.add('appts',{title:f.title.trim(),kind:f.kind,date:f.date,time:f.time,done:false});toast('Appointment added')},
+  list(f,form){const o={text:f.text.trim(),done:false};if('who' in f)o.who=f.who===''?null:+f.who;DB.add(form.dataset.col,o)},
+  rem(f){DB.add('reminders',{title:f.title.trim(),cat:f.cat,due:f.due,repeatDays:+f.repeatDays||0});toast('Reminder added')},
+  bill(f){DB.add('bills',{title:f.title.trim(),cat:f.cat,due:f.due,repeat:f.repeat,amount:f.amount===''?null:+f.amount});toast('Added')}
+};
+document.addEventListener('submit',e=>{
+  const form=e.target.closest('form[data-form]'); if(!form)return; e.preventDefault();
+  const f=Object.fromEntries(new FormData(form)); FORMS[form.dataset.form](f,form);
+  const keepFocus=form.dataset.form==='list'; render();
+  if(keepFocus){const inp=document.querySelector(`form[data-col="${form.dataset.col}"] input[name="text"]`);if(inp)inp.focus()}
+});
+
+/* ---------- Routing, clock, wake lock ---------- */
+const TABS=['today','baby','home','money'];
+function route(){const h=location.hash.replace('#','');tab=TABS.includes(h)?h:'today';render();window.scrollTo(0,0)}
+window.addEventListener('hashchange',route);
+let wake=null;
+async function requestWake(){if(wake||!navigator.wakeLock)return;try{wake=await navigator.wakeLock.request('screen');wake.addEventListener('release',()=>wake=null)}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWake()});
+try{if(localStorage.getItem(KEY+'.night')){document.documentElement.setAttribute('data-night','');document.getElementById('nightBtn').setAttribute('aria-pressed','true')}}catch(e){}
+tick(); route();
+setInterval(()=>{tick();const a=document.activeElement;if(!(a&&(a.tagName==='INPUT'||a.tagName==='SELECT')))render()},30000);
+</script>
+
+</body>
+</html>
