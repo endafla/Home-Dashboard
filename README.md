@@ -11,8 +11,9 @@ Family dashboard for the kitchen tablet and both phones.
 
 ## Status
 
-- [x] UI for all four tabs, with example data
-- [x] Today: weather (now + next 12 hours, drying-day check), countdowns, note board, emergency card with Eircode and medical numbers
+- [x] UI for all five tabs, with example data
+- [x] Today: weather (now + next 12 hours, drying-day check), pregnancy tracker and countdowns, note board, arriving today
+- [x] Emergency tab: Eircode, tap-to-call numbers, editable contacts
 - [x] Baby logging: feeds (timer, sides, bottle), nappies, sleep, medicines with early-dose warning, temperature, growth chart, appointments and vaccines, questions for the nurse or GP
 - [x] Household: deliveries (item, courier, day, time window, tracking ref), dinner planner (7-day strip, prep note, ingredients to shopping list), shopping list, to-dos, dog / home / car reminders, bin dates from a repeating schedule
 - [x] Money: debits, renewals (flagged 30 days out), annual bills, subscriptions; amounts hidden by default
