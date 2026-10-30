@@ -72,6 +72,15 @@ header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:va
 nav.tabs{display:flex;gap:6px;background:var(--surface-2);padding:5px;border-radius:999px;overflow-x:auto;max-width:100%}
 nav.tabs a{padding:10px 18px;border-radius:999px;text-decoration:none;color:var(--muted);font-weight:700;white-space:nowrap;min-height:44px;display:flex;align-items:center}
 nav.tabs a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tab-sos{color:var(--bad)!important}
+nav.tabs a.tab-sos[aria-current="page"]{background:var(--bad);color:var(--accent-ink)!important}
+.calls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.call{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:12px;border:2px solid var(--line);background:var(--surface);text-decoration:none;color:var(--ink);min-height:84px;min-width:0}
+.call.urgent{border-color:var(--bad);background:var(--bad-bg)}
+.call .cn{font-weight:700}
+.call .cnum{font-family:var(--font-display);font-size:1.5rem;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.call.urgent .cnum{color:var(--bad)}
+.call .cs{font-size:.85rem;color:var(--muted)}
 .iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:10px 14px;min-height:44px;font-weight:700}
 .iconbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 
@@ -241,7 +250,7 @@ form.inline button.swatch[aria-pressed="true"]{border-color:var(--ink);box-shado
   nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;border-radius:0;justify-content:space-around;gap:0;
     background:var(--surface);border-top:1px solid var(--line);
     padding:6px max(8px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-right, 0px))}
-  nav.tabs a{flex:1;justify-content:center;padding:10px 4px;font-size:.92rem}
+  nav.tabs a{flex:1;justify-content:center;padding:10px 2px;font-size:.8rem;min-width:0}
   nav.tabs a[aria-current="page"]{background:var(--surface-2);box-shadow:none}
   body{padding-bottom:calc(84px + env(safe-area-inset-bottom, 0px))}
   .toast{bottom:calc(84px + env(safe-area-inset-bottom, 0px))}
@@ -269,6 +278,7 @@ form.inline button.swatch[aria-pressed="true"]{border-color:var(--ink);box-shado
       <a href="#baby" data-tab="baby">Baby</a>
       <a href="#home" data-tab="home">Household</a>
       <a href="#money" data-tab="money">Money</a>
+      <a href="#emergency" data-tab="emergency" class="tab-sos">Emergency</a>
     </nav>
     <button class="iconbtn" id="nightBtn" aria-pressed="false" data-act="night">Night mode</button>
   </div>
@@ -280,6 +290,7 @@ form.inline button.swatch[aria-pressed="true"]{border-color:var(--ink);box-shado
   <section id="view-baby" hidden></section>
   <section id="view-home" hidden></section>
   <section id="view-money" hidden></section>
+  <section id="view-emergency" hidden></section>
 </main>
 <div id="toast" class="toast" hidden></div>
 
@@ -576,7 +587,7 @@ function notesPanel(){
   const notes=S.notes.slice().sort((a,b)=>b.at-a.at);
   const rot=i=>['-0.6deg','0.5deg','-0.3deg','0.7deg','-0.5deg'][i%5];
   const cards=notes.map((n,i)=>`<div class="note" style="--nc:var(--note-${n.color||1});--rot:${rot(i)}"><div class="nt">${esc(n.text)}</div><div class="nf"><span>${esc(names[n.by]||'')} · ${ago(n.at)}</span><button class="x" aria-label="Remove note" data-act="del" data-col="notes" data-id="${n.id}">×</button></div></div>`).join('');
-  return `<div class="panel span-8"><div class="ptitle"><h2>Notes</h2><span class="hint">Quick messages for whoever's home</span></div>
+  return `<div class="panel span-12"><div class="ptitle"><h2>Notes</h2><span class="hint">Quick messages for whoever's home</span></div>
     ${cards?`<div class="notes">${cards}</div>`:'<div class="empty">No notes. Leave one for the other person below.</div>'}
     <form class="inline note-form" data-form="note">
       <textarea id="noteText" name="text" required maxlength="280" placeholder="Write a note, e.g. Gave Calpol at 4am"></textarea>
@@ -590,15 +601,14 @@ function emergencyPanel(){
   const a=S.settings.address;
   const addr=editAddr||!a
     ?`<form class="inline" data-form="address"><input id="addrInput" name="address" value="${esc(a)}" placeholder="Your Eircode" autocomplete="postal-code"><button>Save</button></form><div class="hint">Saved on this device only, never in the public code.</div>`
-    :`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="addr">${esc(a)}</span><button class="small-btn" data-act="editAddr">Change</button></div>`;
-  const key=S.contacts.filter(c=>c.group==='emergency'||c.group==='medical').filter(c=>c.number);
-  const li=key.map(c=>`<li><div class="li-main"><div class="t">${esc(c.name)}</div>${c.note?`<div class="s">${esc(c.note)}</div>`:''}</div><a class="tel" href="${telHref(c.number)}">${esc(c.number)}</a></li>`).join('');
-  const missing=S.contacts.filter(c=>c.group==='medical'&&!c.number).length;
-  return `<div class="panel span-4 emerg"><div class="ptitle"><h2>Emergency</h2></div>
-    <div><span class="eyebrow">Our Eircode</span>${addr}</div>
-    <ul class="list">${li}</ul>
-    <a href="#home" data-goto="home" class="hint">${missing?`Add ${missing} more number${missing===1?'':'s'} (GP, pharmacy…) in Household`:'Edit contacts in Household'}</a></div>`;
+    :`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="addr" style="font-size:clamp(2rem,6vw,3rem)">${esc(a)}</span><button class="small-btn" data-act="editAddr">Change</button></div>`;
+  const key=S.contacts.filter(c=>(c.group==='emergency'||c.group==='medical')&&c.number);
+  const tiles=key.map(c=>`<a class="call ${c.group==='emergency'?'urgent':''}" href="${telHref(c.number)}"><span class="cn">${esc(c.name)}</span><span class="cnum">${esc(c.number)}</span>${c.note?`<span class="cs">${esc(c.note)}</span>`:''}</a>`).join('');
+  return `<div class="panel span-12 emerg"><div class="ptitle"><h2>Emergency</h2><span class="hint">Tap a number to call</span></div>
+    <div><span class="eyebrow">Our Eircode, read this out first</span>${addr}</div>
+    <div class="calls">${tiles}</div></div>`;
 }
+function renderEmergency(){return `<div class="grid">${emergencyPanel()}${contactsPanel()}</div>`}
 const GROUPS={emergency:'Emergency',medical:'Medical',pets:'Pets',home:'Home and trades'};
 function contactsPanel(){
   const groups=Object.entries(GROUPS).map(([g,label])=>{
@@ -607,7 +617,7 @@ function contactsPanel(){
       :`<li><div class="li-main"><div class="t">${esc(c.name)}</div>${c.note?`<div class="s">${esc(c.note)}</div>`:''}</div>${c.number?`<a class="tel" href="${telHref(c.number)}">${esc(c.number)}</a>`:'<span class="tel missing">No number</span>'}<button class="small-btn" data-act="contactEdit" data-id="${c.id}">Edit</button><button class="x" aria-label="Delete ${esc(c.name)}" data-act="del" data-col="contacts" data-id="${c.id}">×</button></li>`).join('');
     return rows?`<div class="group"><span class="glabel">${label}</span><ul class="list">${rows}</ul></div>`:'';
   }).join('');
-  return `<div class="panel span-12"><div class="ptitle"><h2>Contacts and emergency numbers</h2><span class="hint">Emergency and medical numbers also show on the Today screen.</span></div>
+  return `<div class="panel span-12"><div class="ptitle"><h2>Contacts and emergency numbers</h2><span class="hint">Emergency and medical numbers with a phone number appear as call buttons above.</span></div>
     <div class="grid" style="gap:12px 24px">${groups.replace(/<div class="group">/g,'<div class="group span-6">')}</div>
     <details class="add"><summary>+ Add a contact</summary><form class="inline" data-form="contact"><input id="ncName" name="name" required placeholder="Name"><input id="ncNum" name="number" placeholder="Phone number" inputmode="tel"><select id="ncGroup" name="group">${Object.entries(GROUPS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><input id="ncNote" name="note" placeholder="Note (optional)"><button>Add</button></form></details></div>`;
 }
@@ -654,7 +664,6 @@ function renderToday(){
     ${weatherPanel()}
     ${countdownPanel()}
     ${notesPanel()}
-    ${emergencyPanel()}
     ${tonightPanel()}
     <div class="panel span-4">
       <div class="ptitle"><h2>Today's plans</h2><span class="pill neutral">Example events</span></div>
@@ -903,7 +912,6 @@ function renderHome(){
       <div class="bins bins-col">${bins}</div>
       <p class="hint">Example schedule. Your collection days get set once, then the board works out every date.</p>
     </div>
-    ${contactsPanel()}
   </div>`;
 }
 
@@ -954,7 +962,7 @@ function renderBanner(){
 }
 function render(){
   renderBanner();
-  const views={today:renderToday,baby:renderBaby,home:renderHome,money:renderMoney};
+  const views={today:renderToday,baby:renderBaby,home:renderHome,money:renderMoney,emergency:renderEmergency};
   for(const k in views){const v=document.getElementById('view-'+k);v.hidden=k!==tab;}
   const v=document.getElementById('view-'+tab);
   // Preserve open <details> and focused input across re-render
@@ -1052,7 +1060,7 @@ document.addEventListener('submit',e=>{
 });
 
 /* ---------- Routing, clock, wake lock ---------- */
-const TABS=['today','baby','home','money'];
+const TABS=['today','baby','home','money','emergency'];
 function route(){const h=location.hash.replace('#','');tab=TABS.includes(h)?h:'today';render();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
 let wake=null;
