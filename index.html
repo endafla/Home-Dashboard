@@ -873,6 +873,15 @@ function listItems(col,withWho){
     <button class="x" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="${col}" data-id="${i.id}">×</button></li>`).join('')||'<li class="empty">Nothing here.</li>';
 }
 
+function shoppingList(){
+  const row=i=>`<li class="${i.done?'done':''}">
+    <button class="check" role="checkbox" aria-checked="${i.done}" aria-label="${i.done?'Move back to buy: ':'Got it: '}${esc(i.text)}" data-act="toggle" data-col="shopping" data-id="${i.id}">${i.done?'✓':''}</button>
+    <div class="li-main"><div class="t">${esc(i.text)}</div></div>
+    <button class="x" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="shopping" data-id="${i.id}">×</button></li>`;
+  const toBuy=S.shopping.filter(i=>!i.done), got=S.shopping.filter(i=>i.done);
+  return `<span class="eyebrow">To buy</span><ul class="list">${toBuy.map(row).join('')||'<li class="empty">Nothing to buy.</li>'}</ul>
+    ${got.length?`<span class="eyebrow">Got</span><ul class="list">${got.map(row).join('')}</ul>`:''}`;
+}
 function dinnerFor(day){return S.dinners.find(d=>d.date===day)}
 function pastMeals(){const seen=new Map();S.dinners.slice().sort((a,b)=>parseDay(a.date)-parseDay(b.date)).forEach(d=>{if(d.meal)seen.set(d.meal.toLowerCase(),d)});return [...seen.values()]}
 function splitIngredients(str){return String(str||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean)}
@@ -975,9 +984,10 @@ function renderHome(){
     ${renderDinners()}
     ${deliveriesPanel()}
     <div class="panel span-6" data-fold="h-shop" data-open="1" data-sum="${shopN} item${shopN===1?'':'s'}">
-      <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} ticked</button>`:''}</div>
+      <div class="ptitle"><h2>Shopping list</h2>${ticked?`<button class="small-btn" data-act="clearTicked" data-col="shopping">Clear ${ticked} bought</button>`:''}</div>
       <form class="inline" data-form="list" data-col="shopping"><input id="shopText" name="text" required placeholder="Add an item" autocomplete="off"><button>Add</button></form>
-      <ul class="list">${listItems('shopping')}</ul>
+      <p class="hint" style="margin:0">Tick items off as you buy them.</p>
+      ${shoppingList()}
     </div>
     <div class="panel span-6" data-fold="h-todo" data-open="1" data-sum="${todoN} to do">
       <div class="ptitle"><h2>To do</h2></div>
