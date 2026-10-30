@@ -135,6 +135,12 @@ li.done .t{text-decoration:line-through;color:var(--muted)}
 .dot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--c)}
 .small-btn{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 12px;font-weight:700;min-height:40px;flex:none}
 
+.tick{position:relative;flex:none;margin:4px 6px 0 0}
+.tick .check{width:34px;height:34px}
+.tick .xb{position:absolute;top:-9px;right:-11px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:.85rem;line-height:1;display:grid;place-items:center;padding:0}
+.tick .xb::before{content:"";position:absolute;inset:-6px}
+.tick .xb:hover{color:var(--bad);border-color:var(--bad)}
+.tap{cursor:pointer;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;width:100%}
 .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
 .pill.warn{background:var(--warn-bg);color:var(--warn)}
@@ -867,17 +873,16 @@ function growthTable(){
 function listItems(col,withWho){
   const names=S.settings.names;
   const arr=S[col].slice().sort((a,b)=>a.done-b.done);
-  return arr.map(i=>`<li class="${i.done?'done':''}">
-    <button class="check" role="checkbox" aria-checked="${i.done}" aria-label="Tick ${esc(i.text)}" data-act="toggle" data-col="${col}" data-id="${i.id}">${i.done?'✓':''}</button>
-    <div class="li-main"><div class="t">${esc(i.text)}</div>${withWho&&i.who!=null&&i.who!==''?`<div class="s">${esc(names[i.who]||'Both')}</div>`:''}</div>
-    <button class="x" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="${col}" data-id="${i.id}">×</button></li>`).join('')||'<li class="empty">Nothing here.</li>';
+  return arr.map(i=>tickRow(col,i,withWho&&i.who!=null&&i.who!==''?esc(names[i.who]||'Both'):'')).join('')||'<li class="empty">Nothing here.</li>';
 }
 
+function tickRow(col,i,sub){
+  return `<li class="${i.done?'done':''}">
+    <button class="li-main tap" data-act="toggle" data-col="${col}" data-id="${i.id}" aria-label="${i.done?'Untick':'Tick'} ${esc(i.text)}"><div class="t">${esc(i.text)}</div>${sub?`<div class="s">${sub}</div>`:''}</button>
+    <span class="tick"><button class="check" role="checkbox" aria-checked="${i.done}" aria-label="${i.done?'Untick':'Tick'} ${esc(i.text)}" data-act="toggle" data-col="${col}" data-id="${i.id}">${i.done?'✓':''}</button><button class="xb" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="${col}" data-id="${i.id}">×</button></span></li>`;
+}
 function shoppingList(){
-  const row=i=>`<li class="${i.done?'done':''}">
-    <button class="check" role="checkbox" aria-checked="${i.done}" aria-label="${i.done?'Move back to buy: ':'Got it: '}${esc(i.text)}" data-act="toggle" data-col="shopping" data-id="${i.id}">${i.done?'✓':''}</button>
-    <div class="li-main"><div class="t">${esc(i.text)}</div></div>
-    <button class="x" aria-label="Delete ${esc(i.text)}" data-act="del" data-col="shopping" data-id="${i.id}">×</button></li>`;
+  const row=i=>tickRow('shopping',i);
   const toBuy=S.shopping.filter(i=>!i.done), got=S.shopping.filter(i=>i.done);
   return `<span class="eyebrow">To buy</span><ul class="list">${toBuy.map(row).join('')||'<li class="empty">Nothing to buy.</li>'}</ul>
     ${got.length?`<span class="eyebrow">Got</span><ul class="list">${got.map(row).join('')}</ul>`:''}`;
