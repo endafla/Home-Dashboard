@@ -498,7 +498,7 @@ const BILLCAT={dd:'Direct debit',renewal:'Renewal',annual:'Annual bill',sub:'Sub
 
 /* ---------- UI state ---------- */
 let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null, editPreg=false, editList=null;
-let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, undo=null, toastTimer=null;
+let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, confirmReset=false, undo=null, toastTimer=null;
 
 /* ---------- Renderers ---------- */
 function babyTiles(compact){
@@ -648,7 +648,13 @@ function emergencyPanel(){
     <div><span class="eyebrow">Our Eircode, read this out first</span>${addr}</div>
     <div class="calls">${tiles}</div></div>`;
 }
-function renderEmergency(){return `<div class="grid">${emergencyPanel()}${contactsPanel()}</div>`}
+function renderEmergency(){return `<div class="grid">${emergencyPanel()}${contactsPanel()}${resetPanel()}</div>`}
+/* TEMPORARY: remove when the shared database goes live (Sprint 2) */
+function resetPanel(){
+  return `<div class="panel span-12"><div class="ptitle"><h2>Reset this device</h2><span class="hint">Temporary, until the shared database is live.</span></div>
+  <p class="hint">Wipes everything the board has saved on this device (notes, logs, Eircode, settings) and brings back the original example board. Your browser history and sign-ins are not touched.</p>
+  <button class="small-btn" data-act="resetBoard">${confirmReset?'Tap again to reset':'Reset board'}</button></div>`;
+}
 const GROUPS={emergency:'Emergency',medical:'Medical',pets:'Pets',home:'Home and trades'};
 function contactsPanel(){
   const groups=Object.entries(GROUPS).map(([g,label])=>{
@@ -1142,6 +1148,9 @@ const ACT={
   contactCancel(){editContact=null},
   shift(d){S.settings.nightShift=+d.i;save()},
   money(){moneyShown=!moneyShown},
+  resetBoard(){if(!confirmReset){confirmReset=true;render();setTimeout(()=>{confirmReset=false;if(tab==='emergency')render()},5000);return}
+    try{Object.keys(localStorage).filter(k=>k===KEY||k.startsWith(KEY+'.')).forEach(k=>localStorage.removeItem(k))}catch(e){}
+    location.reload()},
   clearExample(){if(!confirmClear){confirmClear=true;setTimeout(()=>{confirmClear=false;renderBanner()},5000);return}confirmClear=false;S=emptyState(S);save();toast('Examples cleared')}
 };
 document.addEventListener('click',e=>{
