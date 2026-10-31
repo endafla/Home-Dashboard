@@ -287,6 +287,7 @@ details.cgroup>summary .glabel{font-size:1rem;flex:1}
   .panel{padding:14px}
   .act{min-height:64px;font-size:1rem}
 }
+.build{margin:18px 0 4px;text-align:center;font-size:11px;color:var(--muted,#888);opacity:.7}
 </style>
 </head>
 <body>
@@ -323,6 +324,7 @@ details.cgroup>summary .glabel{font-size:1rem;flex:1}
 <script>
 /* ---------- Data layer (local for now; swap for Supabase later) ---------- */
 const KEY='homeboard.v1';
+const BUILD={v:'v1.22',at:'31 Oct 2026, 06:00'}; // BUILD-STAMP: bumped automatically on every commit
 const M=60e3,H=3600e3,D=864e5;
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 const now=()=>Date.now();
@@ -740,7 +742,8 @@ function renderToday(){
       </div>
       <a href="#household" data-goto="home" class="hint">${shopLeft} item${shopLeft===1?'':'s'} on the shopping list</a>
     </div>
-  </div>`;
+  </div>
+  <p class="build">${BUILD.v}${BUILD.at?' · '+BUILD.at:''}</p>`;
 }
 
 function renderBaby(){
