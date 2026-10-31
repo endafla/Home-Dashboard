@@ -497,7 +497,7 @@ const REMCAT={dog:{n:'Dog',c:'var(--nappy)'},home:{n:'Home',c:'var(--feed)'},car
 const BILLCAT={dd:'Direct debit',renewal:'Renewal',annual:'Annual bill',sub:'Subscription'};
 
 /* ---------- UI state ---------- */
-let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null, editPreg=false, editList=null;
+let dinnerWeek=0, editDay=null, afterRender=null, noteColor=1, editAddr=false, editContact=null, editPreg=false, editList=null, editDelivery=null;
 let tab='today', moneyShown=false, earlyArmed=null, confirmClear=false, confirmReset=false, undo=null, toastTimer=null;
 
 /* ---------- Renderers ---------- */
@@ -945,12 +945,21 @@ function deliveriesPanel(){
   const open=S.deliveries.filter(d=>!d.done).sort((a,b)=>parseDay(a.date)-parseDay(b.date)||(a.from||'99').localeCompare(b.from||'99'));
   const arrived=S.deliveries.filter(d=>d.done);
   const win=d=>d.from&&d.to?`${esc(d.from)} to ${esc(d.to)}`:d.from?'from '+esc(d.from):d.to?'by '+esc(d.to):'';
-  const row=d=>{const t=parseDay(d.date);const diff=Math.round((t-today)/D);
+  const editRow=d=>`<li><form class="inline" data-form="delivery" data-id="${d.id}" style="flex:1">
+        <input id="edItem" name="item" required value="${esc(d.item)}" placeholder="What's coming">
+        <input id="edCourier" name="courier" list="couriers" value="${esc(d.courier||'')}" placeholder="Courier" style="flex:0 1 150px">
+        <input id="edDate" name="date" type="date" required value="${esc(d.date)}" aria-label="Expected day">
+        <input class="narrow" id="edFrom" name="from" type="time" value="${esc(d.from||'')}" aria-label="Window from">
+        <input class="narrow" id="edTo" name="to" type="time" value="${esc(d.to||'')}" aria-label="Window to">
+        <input id="edRef" name="ref" value="${esc(d.ref||'')}" placeholder="Tracking number (optional)">
+        <input id="edNote" name="note" value="${esc(d.note||'')}" placeholder="Note">
+        <button>Save</button><button type="button" class="small-btn" data-act="deliveryCancel">Cancel</button></form></li>`;
+  const row=d=>{if(editDelivery===d.id)return editRow(d);const t=parseDay(d.date);const diff=Math.round((t-today)/D);
     const pill=d.done?'<span class="pill ok">Arrived</span>':diff<0?`<span class="pill bad">Late, was ${dayLabel(t)}</span>`:diff===0?'<span class="pill warn">Today</span>':`<span class="pill neutral">${dayLabel(t)}</span>`;
     return `<li class="${d.done?'done':''}">
       <button class="check" role="checkbox" aria-checked="${d.done}" aria-label="Mark ${esc(d.item)} arrived" data-act="toggle" data-col="deliveries" data-id="${d.id}">${d.done?'✓':''}</button>
       <div class="li-main"><div class="t">${esc(d.item)}</div><div class="s">${[esc(d.courier),win(d),d.ref?'Ref '+esc(d.ref):'',esc(d.note)].filter(Boolean).join(' · ')}</div></div>
-      <span class="row-end">${pill}<button class="x" aria-label="Delete ${esc(d.item)}" data-act="del" data-col="deliveries" data-id="${d.id}">×</button></span></li>`};
+      <span class="row-end">${pill}<button class="small-btn" data-act="deliveryEdit" data-id="${d.id}">Edit</button><button class="x" aria-label="Delete ${esc(d.item)}" data-act="del" data-col="deliveries" data-id="${d.id}">×</button></span></li>`};
   const todayN=open.filter(d=>parseDay(d.date)===today).length;
   return `<div class="panel span-12" data-fold="h-deliveries" data-open="1" data-sum="${open.length?(todayN?todayN+' today · ':'')+open.length+' on the way':'Nothing on the way'}">
     <div class="ptitle"><h2>Deliveries</h2>${arrived.length?`<button class="small-btn" data-act="clearTicked" data-col="deliveries">Clear ${arrived.length} arrived</button>`:''}</div>
@@ -1145,6 +1154,8 @@ const ACT={
   noteColor(d){noteColor=+d.c},
   editAddr(){editAddr=true;afterRender=()=>document.getElementById('addrInput')?.focus()},
   contactEdit(d){editContact=d.id},
+  deliveryEdit(d){editDelivery=d.id},
+  deliveryCancel(){editDelivery=null},
   contactCancel(){editContact=null},
   shift(d){S.settings.nightShift=+d.i;save()},
   money(){moneyShown=!moneyShown},
@@ -1175,7 +1186,8 @@ const FORMS={
     editDay=null; toast('Dinner saved');
   },
   preg(f){S.settings.dueDate=f.dueDate;S.settings.pregStart=f.pregStart||'';editPreg=false;save();toast('Saved')},
-  delivery(f){DB.add('deliveries',{item:f.item.trim(),courier:f.courier.trim(),date:f.date,from:f.from,to:f.to,ref:f.ref.trim(),note:f.note.trim(),done:false});toast('Delivery added')},
+  delivery(f,form){const o={item:f.item.trim(),courier:f.courier.trim(),date:f.date,from:f.from,to:f.to,ref:f.ref.trim(),note:f.note.trim()};
+    if(form.dataset.id){DB.update('deliveries',form.dataset.id,o);editDelivery=null;toast('Delivery updated')}else{DB.add('deliveries',{...o,done:false});toast('Delivery added')}},
   note(f){const by=+f.by;S.settings.lastAuthor=by;DB.add('notes',{text:f.text.trim(),by,at:now(),color:noteColor});toast('Note posted')},
   countdown(f){DB.add('countdowns',{title:f.title.trim(),date:f.date});toast('Countdown added')},
   address(f){S.settings.address=f.address.trim().toUpperCase();editAddr=false;save()},
